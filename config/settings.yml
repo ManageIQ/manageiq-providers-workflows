@@ -1,0 +1,26 @@
+:ems:
+  :ems_workflows:
+    :blacklisted_event_names: []
+    :event_handling:
+      :event_groups:
+:ems_refresh:
+  :workflows:
+    :refresh_interval: 15.minutes
+:http_proxy:
+  :workflows:
+    :host:
+    :password:
+    :port:
+    :user:
+:log:
+  :level_workflows: info
+:workers:
+  :worker_base:
+    :event_catcher:
+      :event_catcher_workflows:
+        :poll: 20.seconds
+    :queue_worker_base:
+      :ems_metrics_collector_worker:
+        :ems_metrics_collector_worker_workflows: {}
+      :ems_refresh_worker:
+        :ems_refresh_worker_workflows: {}
