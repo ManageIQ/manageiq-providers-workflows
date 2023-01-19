@@ -18,7 +18,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
       :ext_management_system => ext_management_system,
       :type                  => "#{ext_management_system.class}::WorkflowInstance",
       :userid                => userid,
-      :context               => context
+      :context               => context,
+      :status                => "pending"
     )
 
     instance.run_queue

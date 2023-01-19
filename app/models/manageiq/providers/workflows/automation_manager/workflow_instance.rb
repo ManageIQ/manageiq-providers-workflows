@@ -16,6 +16,15 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
 
     context["states"][state.name] << {"start" => tick, "end" => tock, "outputs" => outputs}
     context["states"]["current_state"] = next_state&.name
+
+    self.status = if next_state.present?
+                    "running"
+                  elsif state.type == "Fail"
+                    "error"
+                  elsif state.type == "Success" || state.try(:end)
+                    "success"
+                  end
+
     save!
 
     run_queue
