@@ -8,7 +8,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
   end
 
   def run
-    state = ManageIQ::Floe::Workflow.new(workflow.payload).states_by_name[context["states"]["current_state"]]
+    state = ManageIQ::Floe::Workflow.new(workflow.payload, context["global"]).states_by_name[context["states"]["current_state"]]
 
     tick = Time.now.utc
     next_state, outputs = state.run!

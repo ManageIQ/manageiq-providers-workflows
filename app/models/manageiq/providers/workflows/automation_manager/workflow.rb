@@ -1,10 +1,10 @@
 class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
-  def execute(userid = "admin")
+  def execute(userid = "admin", inputs = {})
     require "manageiq-floe"
     floe = ManageIQ::Floe::Workflow.new(payload)
 
     context = {
-      "global" => {},
+      "global" => inputs,
       "states" => {
         "current_state" => floe.start_at
       }
