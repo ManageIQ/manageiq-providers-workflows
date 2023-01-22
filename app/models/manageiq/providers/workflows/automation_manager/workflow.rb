@@ -4,15 +4,10 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
     floe = ManageIQ::Floe::Workflow.new(payload)
 
     context = {
-      "global" => inputs,
-      "states" => {
-        "current_state" => floe.start_at
-      }
+      "global"        => inputs,
+      "current_state" => floe.start_at,
+      "states"        => []
     }
-
-    floe.states.map(&:name).each do |state_name|
-      context["states"][state_name] = []
-    end
 
     instance = workflow_instances.create!(
       :ext_management_system => ext_management_system,

@@ -8,25 +8,26 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
   end
 
   def run
-    state = ManageIQ::Floe::Workflow.new(workflow.payload, context["global"]).states_by_name[context["states"]["current_state"]]
+    wf = ManageIQ::Floe::Workflow.new(workflow.payload, context["global"])
+    current_state = wf.states_by_name[context["current_state"]]
 
     tick = Time.now.utc
-    next_state, outputs = state.run!
+    next_state, outputs = current_state.run!
     tock = Time.now.utc
 
-    context["states"][state.name] << {"start" => tick, "end" => tock, "outputs" => outputs}
-    context["states"]["current_state"] = next_state&.name
+    context["states"] << {"start" => tick, "end" => tock, "outputs" => outputs}
+    context["current_state"] = next_state&.name
 
     self.status = if next_state.present?
                     "running"
-                  elsif state.type == "Fail"
+                  elsif current_state.type == "Fail"
                     "error"
-                  elsif state.type == "Success" || state.try(:end)
+                  elsif current_state.type == "Success" || current_state.try(:end)
                     "success"
                   end
 
     save!
 
-    run_queue
+    run_queue if next_state.present?
   end
 end
