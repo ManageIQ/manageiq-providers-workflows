@@ -16,7 +16,7 @@ module ManageIQ
         end
 
         def self.plugin_name
-          _('Workflows Provider')
+          _('Embedded Workflows Provider')
         end
 
         def self.init_loggers
@@ -28,6 +28,10 @@ module ManageIQ
 
         def self.apply_logger_config(config)
           Vmdb::Loggers.apply_config_value(config, $workflows_log, :level_workflows)
+        end
+
+        def self.seedable_classes
+          %w[ManageIQ::Providers::Workflows]
         end
       end
     end
