@@ -8,26 +8,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
   end
 
   def run
-    wf = ManageIQ::Floe::Workflow.new(workflow.payload, context["global"])
-    current_state = wf.states_by_name[context["current_state"]]
-
-    tick = Time.now.utc
-    next_state, outputs = current_state.run!
-    tock = Time.now.utc
-
-    context["states"] << {"start" => tick, "end" => tock, "outputs" => outputs}
-    context["current_state"] = next_state&.name
-
-    self.status = if next_state.present?
-                    "running"
-                  elsif current_state.type == "Fail"
-                    "error"
-                  elsif current_state.type == "Success" || current_state.try(:end)
-                    "success"
-                  end
-
-    save!
-
-    run_queue if next_state.present?
+    wf = ManageIQ::Floe::Workflow.new(workflow.payload, context)
+    wf.step
+    update!(:context => wf.context, :status => wf.status)
+    run_queue unless wf.end?
   end
 end
