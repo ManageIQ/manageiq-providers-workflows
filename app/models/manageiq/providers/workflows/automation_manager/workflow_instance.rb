@@ -68,37 +68,13 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
       end
     end
 
-    wf = Floe::Workflow.new(payload, context["global"], creds)
-    current_state = wf.states_by_name[context["current_state"]]
+    wf = ManageIQ::Floe::Workflow.new(workflow.payload, context, creds)
+    wf.step
 
-    input = output
-
-    tick = Time.now.utc
-    next_state, output = current_state.run!(input)
-    tock = Time.now.utc
-
-    context["current_state"] = next_state&.name
-    context["states"] << {
-      "name"   => current_state.name,
-      "start"  => tick,
-      "end"    => tock,
-      "input"  => input,
-      "output" => output
-    }
-
-    self.output = output
-    self.status = if next_state.present?
-                    "running"
-                  elsif current_state.type == "Fail"
-                    "error"
-                  elsif current_state.type == "Succeed" || current_state.try(:end)
-                    "success"
-                  end
-
-    save!
+    update!(:context => wf.context, :status => wf.status)
 
     object.after_ae_delivery(status) if object.present? && object.respond_to?(:after_ae_delivery)
 
-    run_queue(:zone => zone, :role => role, :object => object) if next_state.present?
+    run_queue(:zone => zone, :role => role, :object => object) unless wf.end?
   end
 end

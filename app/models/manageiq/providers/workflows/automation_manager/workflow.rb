@@ -33,8 +33,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
         :miq_task      => miq_task,
         :payload       => payload,
         :credentials   => credentials,
-        :context       => context,
-        :output        => context["global"],
+        :context       => {"global" => inputs},
+        :output        => inputs,
         :status        => "pending"
       )
 
