@@ -12,6 +12,6 @@ class ManageIQ::Providers::Workflows::AutomationManager < ManageIQ::Providers::E
   end
 
   def self.description
-    @description ||= "Workflows".freeze
+    @description ||= "Embedded Workflows".freeze
   end
 end
