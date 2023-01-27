@@ -22,7 +22,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
                     "running"
                   elsif current_state.type == "Fail"
                     "error"
-                  elsif current_state.type == "Success" || current_state.try(:end)
+                  elsif current_state.type == "Succeed" || current_state.try(:end)
                     "success"
                   end
 
