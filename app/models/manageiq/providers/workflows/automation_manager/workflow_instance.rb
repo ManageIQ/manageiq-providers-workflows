@@ -45,6 +45,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
     next_state, outputs = current_state.run!
     tock = Time.now.utc
 
+    # HACK: Inject some values pretending that "NextState" wrote these values into the workspace
+    fake_workflow_outputs(current_state)
+
     context["states"] << {"start" => tick, "end" => tock, "outputs" => outputs}
     context["current_state"] = next_state&.name
 
@@ -59,5 +62,16 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
     save!
 
     run_queue if next_state.present?
+  end
+
+  def fake_workflow_outputs(state)
+    case state.name
+    when "IpamIps"
+      context["global"]["values"] = {
+        "192.168.1.1" => "IP Address 1 (192.168.1.1)",
+        "192.168.1.2" => "IP Address 2 (192.168.1.2)",
+        "192.168.1.3" => "IP Address 3 (192.168.1.3)"
+      }
+    end
   end
 end
