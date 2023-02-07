@@ -22,6 +22,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
         :userid                => userid,
         :miq_task              => miq_task,
         :context               => context,
+        :output                => context["global"],
         :status                => "pending",
       )
 

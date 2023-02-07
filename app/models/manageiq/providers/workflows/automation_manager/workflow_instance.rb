@@ -38,16 +38,23 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
   end
 
   def run
-    wf = ManageIQ::Floe::Workflow.new(workflow.payload, context["global"])
+    credentials = workflow.credentials&.transform_values do |val|
+      ManageIQ::Password.try_decrypt(val)
+    end
+
+    wf = ManageIQ::Floe::Workflow.new(workflow.payload, context["global"], credentials)
     current_state = wf.states_by_name[context["current_state"]]
 
+    input = output
+
     tick = Time.now.utc
-    next_state, outputs = current_state.run!
+    next_state, outputs = current_state.run!(input)
     tock = Time.now.utc
 
     context["states"] << {"start" => tick, "end" => tock, "outputs" => outputs}
     context["current_state"] = next_state&.name
 
+    self.output = outputs
     self.status = if next_state.present?
                     "running"
                   elsif current_state.type == "Fail"
