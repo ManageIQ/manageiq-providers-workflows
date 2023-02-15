@@ -53,11 +53,11 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
 
     context["current_state"] = next_state&.name
     context["states"] << {
-      "name"    => current_state.name,
-      "start"   => tick,
-      "end"     => tock,
-      "input"   => input,
-      "outputs" => output
+      "name"   => current_state.name,
+      "start"  => tick,
+      "end"    => tock,
+      "input"  => input,
+      "output" => output
     }
 
     self.output = output
