@@ -48,13 +48,19 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
     input = output
 
     tick = Time.now.utc
-    next_state, outputs = current_state.run!(input)
+    next_state, output = current_state.run!(input)
     tock = Time.now.utc
 
-    context["states"] << {"start" => tick, "end" => tock, "outputs" => outputs}
     context["current_state"] = next_state&.name
+    context["states"] << {
+      "name"    => current_state.name,
+      "start"   => tick,
+      "end"     => tock,
+      "input"   => input,
+      "outputs" => output
+    }
 
-    self.output = outputs
+    self.output = output
     self.status = if next_state.present?
                     "running"
                   elsif current_state.type == "Fail"
