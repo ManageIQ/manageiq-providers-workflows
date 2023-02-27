@@ -21,6 +21,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
         :type                  => "#{ext_management_system.class}::WorkflowInstance",
         :userid                => userid,
         :miq_task              => miq_task,
+        :payload               => payload,
+        :credentials           => credentials,
         :context               => context,
         :output                => context["global"],
         :status                => "pending",
