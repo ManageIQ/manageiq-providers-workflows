@@ -1,10 +1,10 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < WorkflowInstance
   def run_queue
     queue_opts = {
-      :class_name   => self.class.name,
-      :instance_id  => id,
-      :method_name  => "run",
-      :args         => [],
+      :class_name  => self.class.name,
+      :instance_id => id,
+      :method_name => "run",
+      :args        => [],
     }
 
     if miq_task_id
@@ -27,7 +27,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
       return
     end
 
-    case self.status
+    case status
     when "running"
       miq_task.update_status(MiqTask::STATE_ACTIVE, MiqTask::STATUS_OK, "Workflow running") # TODO: Can we get the last state here?
     when "success"
