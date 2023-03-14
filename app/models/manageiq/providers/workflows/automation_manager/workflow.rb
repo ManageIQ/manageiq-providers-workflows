@@ -1,7 +1,7 @@
 class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
   def execute(userid: "admin", inputs: {})
     require "manageiq-floe"
-    floe = ManageIQ::Floe::Workflow.new(payload)
+    floe = ManageIQ::Floe::Workflow.new(workflow_content)
 
     context = {
       "global"        => inputs,
@@ -13,7 +13,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
     transaction do
       miq_task = MiqTask.create!(
         :name   => "Execute Workflow",
-        :userid => userid,
+        :userid => userid
       )
 
       instance = workflow_instances.create!(
@@ -21,11 +21,11 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
         :type                  => "#{ext_management_system.class}::WorkflowInstance",
         :userid                => userid,
         :miq_task              => miq_task,
-        :payload               => payload,
+        :workflow_content      => workflow_content,
         :credentials           => credentials,
         :context               => context,
         :output                => context["global"],
-        :status                => "pending",
+        :status                => "pending"
       )
 
       miq_task.update!(:context_data => {:workflow_instance_id => instance.id})
