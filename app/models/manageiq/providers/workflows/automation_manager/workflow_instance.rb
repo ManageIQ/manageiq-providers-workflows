@@ -39,7 +39,15 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
 
   def run
     creds = credentials&.transform_values do |val|
-      ManageIQ::Password.try_decrypt(val)
+      if val.start_with?("$.")
+        name, field = val.match(/^\$\.(?<name>.+)\.(?<field>.+)$/).named_captures.values_at("name", "field")
+
+        # TODO enforce RBAC when querying this record
+        authentication = manager.authentications.find_by!(:name => name)
+        authentication.send(field)
+      else
+        ManageIQ::Password.try_decrypt(val)
+      end
     end
 
     wf = Floe::Workflow.new(payload, context["global"], creds)

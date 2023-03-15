@@ -56,5 +56,39 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
 
       expect(workflow_instance.reload.status).to eq("success")
     end
+
+    context "with a Credentials property in the workflow_content" do
+      let(:credentials) { {"username" => "$.my-credential.userid", "password" => "$.my-credential.password"} }
+      let(:workflow_content) do
+        {
+          "Comment" => "Example Workflow",
+          "StartAt" => "FirstState",
+          "States"  => {
+            "FirstState" => {
+              "Type"        => "Succeed",
+              "Credentials" => {
+                "username" => "$.username",
+                "password" => "$.password"
+              }
+            }
+          }
+        }
+      end
+
+      context "with a missing Authentication record" do
+        it "raises an exception" do
+          expect { workflow_instance.run }.to raise_error(ActiveRecord::RecordNotFound)
+        end
+      end
+
+      context "with an Authentication record" do
+        let!(:credential) { FactoryBot.create(:workflows_automation_authentication, :resource => ems, :name => "my-credential", :userid => "my-user", :password => "shhhh!") }
+
+        it "passes the resolved credential to the runner" do
+          expect(Floe::Workflow).to receive(:new).with(workflow_content, context["global"], {"username" => "my-user", "password" => "shhhh!"}).and_call_original
+          workflow_instance.run
+        end
+      end
+    end
   end
 end
