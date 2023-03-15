@@ -38,11 +38,11 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
   end
 
   def run
-    credentials = workflow.credentials&.transform_values do |val|
+    creds = credentials&.transform_values do |val|
       ManageIQ::Password.try_decrypt(val)
     end
 
-    wf = ManageIQ::Floe::Workflow.new(workflow.payload, context["global"], credentials)
+    wf = ManageIQ::Floe::Workflow.new(workflow_content, context["global"], creds)
     current_state = wf.states_by_name[context["current_state"]]
 
     input = output
