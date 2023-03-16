@@ -5,19 +5,15 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
   let(:credentials) { {} }
   let(:inputs)      { {} }
   let(:workflow_content) do
-    JSON.parse(
-      <<~WORKFLOW_CONTENT
-        {
-          "Comment": "Example Workflow",
-          "StartAt": "FirstState",
-          "States": {
-            "FirstState": {
-              "Type": "Succeed"
-            }
-          }
+    {
+      "Comment" => "Example Workflow",
+      "StartAt" => "FirstState",
+      "States"  => {
+        "FirstState" => {
+          "Type" => "Succeed"
         }
-      WORKFLOW_CONTENT
-    )
+      }
+    }
   end
 
   describe "#execute" do

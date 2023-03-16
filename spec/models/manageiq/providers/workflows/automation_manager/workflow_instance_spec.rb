@@ -9,19 +9,15 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
   let(:workflow_instance) { FactoryBot.create(:workflows_automation_workflow_instance, :workflow => workflow, :workflow_content => workflow_content, :credentials => credentials, :context => context, :miq_task => miq_task) }
   let(:miq_task)          { nil }
   let(:workflow_content) do
-    JSON.parse(
-      <<~WORKFLOW_CONTENT
-        {
-          "Comment": "Example Workflow",
-          "StartAt": "FirstState",
-          "States": {
-            "FirstState": {
-              "Type": "Succeed"
-            }
-          }
+    {
+      "Comment" => "Example Workflow",
+      "StartAt" => "FirstState",
+      "States"  => {
+        "FirstState" => {
+          "Type" => "Succeed"
         }
-      WORKFLOW_CONTENT
-    )
+      }
+    }
   end
 
   describe "#run_queue" do
@@ -55,7 +51,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
   end
 
   describe "#run" do
-    it "test" do
+    it "sets the status to success" do
       workflow_instance.run
 
       expect(workflow_instance.reload.status).to eq("success")
