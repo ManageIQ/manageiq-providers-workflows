@@ -42,7 +42,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
       ManageIQ::Password.try_decrypt(val)
     end
 
-    wf = ManageIQ::Floe::Workflow.new(workflow_content, context["global"], creds)
+    wf = Floe::Workflow.new(workflow_content, context["global"], creds)
     current_state = wf.states_by_name[context["current_state"]]
 
     input = output

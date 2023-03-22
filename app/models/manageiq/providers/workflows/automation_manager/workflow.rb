@@ -1,7 +1,7 @@
 class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
   def execute(userid: "admin", inputs: {})
-    require "manageiq-floe"
-    floe = ManageIQ::Floe::Workflow.new(workflow_content)
+    require "floe"
+    floe = Floe::Workflow.new(workflow_content)
 
     context = {
       "global"        => inputs,
