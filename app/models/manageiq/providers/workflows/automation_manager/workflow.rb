@@ -11,13 +11,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
     raise _("execute is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     require "floe"
-    floe = Floe::Workflow.new(payload)
-
-    context = {
-      "global"        => inputs,
-      "current_state" => floe.start_at,
-      "states"        => []
-    }
+    context = Floe::Workflow::Context.new(:input => inputs)
 
     miq_task = instance = nil
     transaction do
@@ -33,7 +27,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
         :miq_task      => miq_task,
         :payload       => payload,
         :credentials   => credentials,
-        :context       => {"global" => inputs},
+        :context       => context.to_h,
         :output        => inputs,
         :status        => "pending"
       )
