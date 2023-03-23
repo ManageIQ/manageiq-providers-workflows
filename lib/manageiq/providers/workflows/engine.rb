@@ -22,8 +22,8 @@ module ManageIQ
         def self.init_loggers
           $workflows_log ||= Vmdb::Loggers.create_logger("workflows.log")
 
-          require "manageiq-floe"
-          ManageIQ::Floe.logger = $workflows_log
+          require "floe"
+          Floe.logger = $workflows_log
         end
 
         def self.apply_logger_config(config)
