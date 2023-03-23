@@ -1,10 +1,10 @@
 # ManageIQ::Providers::Workflows
 
 [![CI](https://github.com/ManageIQ/manageiq-providers-workflows/actions/workflows/ci.yaml/badge.svg)](https://github.com/ManageIQ/manageiq-providers-workflows/actions/workflows/ci.yaml)
-[![Maintainability](https://api.codeclimate.com/v1/badges/<badge_token>/maintainability)](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/<badge_token>/test_coverage)](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows/test_coverage)
-
+[![Code Climate](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows.svg)](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows)
+[![Test Coverage](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows/badges/coverage.svg)](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows/coverage)
 [![Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ManageIQ/manageiq-providers-workflows?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 
 ManageIQ plugin for the Workflows provider.
 
