@@ -47,7 +47,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
 
         authentication.send(field)
       else
-        ManageIQ::Password.try_decrypt(val)
+        val
       end
     end
 
