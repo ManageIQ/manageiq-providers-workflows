@@ -42,8 +42,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
       if val.start_with?("$.")
         name, field = val.match(/^\$\.(?<name>.+)\.(?<field>.+)$/).named_captures.values_at("name", "field")
 
-        # TODO enforce RBAC when querying this record
-        authentication = manager.authentications.find_by!(:name => name)
+        authentication = Rbac.filtered_object(manager.authentications.find_by!(:name => name), :userid => run_by_userid, :miq_group_id => miq_group_id)
+        raise ActiveRecord::RecordNotFound, "Couldn't find Authentication" if authentication.nil?
+
         authentication.send(field)
       else
         ManageIQ::Password.try_decrypt(val)
