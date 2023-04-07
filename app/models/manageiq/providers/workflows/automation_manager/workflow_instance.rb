@@ -1,4 +1,4 @@
-class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < WorkflowInstance
+class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
   def run_queue
     queue_opts = {
       :class_name  => self.class.name,
@@ -42,7 +42,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
       ManageIQ::Password.try_decrypt(val)
     end
 
-    wf = Floe::Workflow.new(workflow_content, context["global"], creds)
+    wf = Floe::Workflow.new(payload, context["global"], creds)
     current_state = wf.states_by_name[context["current_state"]]
 
     input = output

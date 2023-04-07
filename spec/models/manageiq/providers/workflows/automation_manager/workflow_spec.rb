@@ -1,10 +1,10 @@
 RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
   let(:ems)         { FactoryBot.create(:ems_workflows_automation, :zone => zone) }
   let(:zone)        { EvmSpecHelper.local_miq_server.zone }
-  let(:workflow)    { FactoryBot.create(:workflows_automation_workflow, :ext_management_system => ems, :workflow_content => workflow_content, :credentials => credentials) }
+  let(:workflow)    { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload, :credentials => credentials) }
   let(:credentials) { {} }
   let(:inputs)      { {} }
-  let(:workflow_content) do
+  let(:payload) do
     {
       "Comment" => "Example Workflow",
       "StartAt" => "FirstState",
@@ -20,16 +20,16 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
     it "creates the workflow_instance" do
       workflow.execute(:inputs => inputs)
 
-      expect(workflow.workflow_instances.count).to eq(1)
-      expect(ems.workflow_instances.count).to eq(1)
-      expect(ems.workflow_instances.first).to have_attributes(
-        :ext_management_system => workflow.ext_management_system,
-        :type                  => "ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance",
-        :workflow_content      => workflow.workflow_content,
-        :credentials           => workflow.credentials,
-        :context               => {"global" => inputs, "current_state" => "FirstState", "states" => []},
-        :output                => {},
-        :status                => "pending"
+      expect(workflow.children.count).to eq(1)
+      expect(ems.configuration_scripts.count).to eq(1)
+      expect(ems.configuration_scripts.first).to have_attributes(
+        :manager => workflow.manager,
+        :type        => "ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance",
+        :payload     => workflow.payload,
+        :credentials => workflow.credentials,
+        :context     => {"global" => inputs, "current_state" => "FirstState", "states" => []},
+        :output      => {},
+        :status      => "pending"
       )
     end
 
@@ -43,7 +43,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
     it "queues WorkflowInstance#run" do
       workflow.execute(:inputs => inputs)
 
-      workflow_instance = ems.workflow_instances.first
+      workflow_instance = ems.configuration_scripts.first
 
       expect(MiqQueue.count).to eq(1)
 
@@ -58,8 +58,8 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
     it "defaults to admin userid" do
       workflow.execute(:inputs => inputs)
 
-      workflow_instance = ems.workflow_instances.first
-      expect(workflow_instance.userid).to eq("admin")
+      workflow_instance = ems.configuration_scripts.first
+      expect(workflow_instance.run_by_userid).to eq("admin")
       expect(workflow_instance.miq_task.userid).to eq("admin")
     end
 
@@ -67,10 +67,10 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
       let(:user) { FactoryBot.create(:user) }
 
       it "uses the userid provided" do
-        workflow.execute(:userid => user.userid)
+        workflow.execute(:run_by_userid => user.userid)
 
-        workflow_instance = ems.workflow_instances.first
-        expect(workflow_instance.userid).to eq(user.userid)
+        workflow_instance = ems.configuration_scripts.first
+        expect(workflow_instance.run_by_userid).to eq(user.userid)
         expect(workflow_instance.miq_task.userid).to eq(user.userid)
       end
     end
