@@ -1,5 +1,5 @@
 class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
-  def execute(userid: "admin", inputs: {})
+  def execute(args: {}, queue_opts: {}, userid: "admin", inputs: {})
     require "floe"
     floe = Floe::Workflow.new(workflow_content)
 
@@ -31,7 +31,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
       miq_task.update!(:context_data => {:workflow_instance_id => instance.id})
     end
 
-    instance.run_queue
+    instance.run_queue(args, queue_opts)
 
     miq_task.id
   end

@@ -1,21 +1,18 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < WorkflowInstance
-  def run_queue
+  def run_queue(args = {}, options = {})
     queue_opts = {
       :class_name  => self.class.name,
       :instance_id => id,
       :method_name => "run",
-      :args        => [],
-    }
+      :args        => [args, options],
+    }.merge(options)
 
     if miq_task_id
-      queue_opts.merge!(
-        # :miq_task_id  => miq_task_id, # TODO: This causes the state to move to active on each step - not sure why
-        :miq_callback => {
-          :class_name  => self.class.name,
-          :instance_id => id,
-          :method_name => :queue_callback
-        }
-      )
+      queue_opts[:miq_callback] = {
+        :class_name  => self.class.name,
+        :instance_id => id,
+        :method_name => :queue_callback
+      }
     end
 
     MiqQueue.put(queue_opts)
@@ -37,7 +34,10 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
     end
   end
 
-  def run
+  def run(args = {}, options = {})
+    object = args[:object_type]&.constantize&.find_by(:id => args[:object_id])
+    object.before_ae_starts({}) if object&.respond_to?(:before_ae_starts)
+
     creds = credentials&.transform_values do |val|
       ManageIQ::Password.try_decrypt(val)
     end
@@ -71,6 +71,17 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
 
     save!
 
-    run_queue if next_state.present?
+    run_queue(args, options) if next_state.present?
+  ensure
+    if object&.respond_to?(:after_ae_delivery)
+      ae_result =
+        case status
+        when "running" then "retry"
+        when "success" then "ok"
+        when "error"   then "error"
+        end
+
+      object.after_ae_delivery(ae_result)
+    end
   end
 end
