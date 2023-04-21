@@ -4,6 +4,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Work
       :class_name  => self.class.name,
       :instance_id => id,
       :method_name => "run",
+      :role        => "automate",
       :args        => [],
     }
 
