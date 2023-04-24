@@ -40,9 +40,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
   def run
     creds = credentials&.transform_values do |val|
       if val.start_with?("$.")
-        name, field = val.match(/^\$\.(?<name>.+)\.(?<field>.+)$/).named_captures.values_at("name", "field")
+        ems_ref, field = val.match(/^\$\.(?<ems_ref>.+)\.(?<field>.+)$/).named_captures.values_at("ems_ref", "field")
 
-        authentication = Rbac.filtered(manager.authentications.where(:name => name), :userid => run_by_userid, :miq_group_id => miq_group_id).first
+        authentication = Rbac.filtered(manager.authentications.where(:ems_ref => ems_ref), :userid => run_by_userid, :miq_group_id => miq_group_id).first
         raise ActiveRecord::RecordNotFound, "Couldn't find Authentication" if authentication.nil?
 
         authentication.send(field)

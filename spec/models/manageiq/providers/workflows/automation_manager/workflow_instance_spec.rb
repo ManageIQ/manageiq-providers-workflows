@@ -86,7 +86,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
       context "with an Authentication record" do
         let(:miq_group)   { evm_owner.current_group }
         let(:evm_owner)   { user }
-        let!(:credential) { FactoryBot.create(:workflows_automation_authentication, :resource => ems, :name => "my-credential", :miq_group => miq_group, :userid => "my-user", :password => "shhhh!") }
+        let!(:credential) { FactoryBot.create(:workflows_automation_authentication, :resource => ems, :ems_ref => "my-credential", :name => "My Credential", :miq_group => miq_group, :userid => "my-user", :password => "shhhh!") }
 
         it "passes the resolved credential to the runner" do
           expect(Floe::Workflow).to receive(:new).with(workflow_content, context["global"], {"username" => "my-user", "password" => "shhhh!"}).and_call_original
