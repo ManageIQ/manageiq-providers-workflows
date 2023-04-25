@@ -23,7 +23,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
       expect(workflow.children.count).to eq(1)
       expect(ems.configuration_scripts.count).to eq(1)
       expect(ems.configuration_scripts.first).to have_attributes(
-        :manager => workflow.manager,
+        :manager     => workflow.manager,
         :type        => "ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance",
         :payload     => workflow.payload,
         :credentials => workflow.credentials,
