@@ -1,4 +1,4 @@
-RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Authentication do
+RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Credential do
   let(:ems)  { FactoryBot.create(:ems_workflows_automation, :zone => zone) }
   let(:zone) { EvmSpecHelper.local_miq_server.zone }
 
