@@ -5,10 +5,10 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
   let(:credentials) { {} }
   let(:inputs)      { {} }
 
-  let(:workflow)          { FactoryBot.create(:workflows_automation_workflow, :ext_management_system => ems, :workflow_content => workflow_content, :credentials => credentials) }
-  let(:workflow_instance) { FactoryBot.create(:workflows_automation_workflow_instance, :workflow => workflow, :workflow_content => workflow_content, :credentials => credentials, :context => context, :miq_task => miq_task) }
+  let(:workflow)          { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload.to_json, :credentials => credentials) }
+  let(:workflow_instance) { FactoryBot.create(:workflows_automation_workflow_instance, :manager => ems, :parent => workflow, :payload => payload.to_json, :credentials => credentials, :context => context, :miq_task => miq_task) }
   let(:miq_task)          { nil }
-  let(:workflow_content) do
+  let(:payload) do
     {
       "Comment" => "Example Workflow",
       "StartAt" => "FirstState",

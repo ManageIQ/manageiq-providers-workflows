@@ -1,7 +1,15 @@
-class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
-  def execute(userid: "admin", inputs: {})
+class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScriptPayload
+  def self.create_from_json!(json, **kwargs)
+    json = JSON.parse(json) if json.kind_of?(String)
+    name = json["Comment"]
+
+    workflows_automation_manager = ManageIQ::Providers::Workflows::AutomationManager.first
+    create!(:manager => workflows_automation_manager, :name => name, :payload => json.to_json, :payload_type => "json", **kwargs)
+  end
+
+  def execute(run_by_userid: "admin", inputs: {})
     require "floe"
-    floe = Floe::Workflow.new(workflow_content)
+    floe = Floe::Workflow.new(payload)
 
     context = {
       "global"        => inputs,
@@ -13,19 +21,19 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < Workflow
     transaction do
       miq_task = MiqTask.create!(
         :name   => "Execute Workflow",
-        :userid => userid
+        :userid => run_by_userid
       )
 
-      instance = workflow_instances.create!(
-        :ext_management_system => ext_management_system,
-        :type                  => "#{ext_management_system.class}::WorkflowInstance",
-        :userid                => userid,
-        :miq_task              => miq_task,
-        :workflow_content      => workflow_content,
-        :credentials           => credentials,
-        :context               => context,
-        :output                => context["global"],
-        :status                => "pending"
+      instance = children.create!(
+        :manager       => manager,
+        :type          => "#{manager.class}::WorkflowInstance",
+        :run_by_userid => run_by_userid,
+        :miq_task      => miq_task,
+        :payload       => payload,
+        :credentials   => credentials,
+        :context       => context,
+        :output        => context["global"],
+        :status        => "pending"
       )
 
       miq_task.update!(:context_data => {:workflow_instance_id => instance.id})
