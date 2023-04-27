@@ -1,7 +1,7 @@
 RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
   let(:ems)         { FactoryBot.create(:ems_workflows_automation, :zone => zone) }
   let(:zone)        { EvmSpecHelper.local_miq_server.zone }
-  let(:workflow)    { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload, :credentials => credentials) }
+  let(:workflow)    { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload.to_json, :credentials => credentials) }
   let(:credentials) { {} }
   let(:inputs)      { {} }
   let(:payload) do
