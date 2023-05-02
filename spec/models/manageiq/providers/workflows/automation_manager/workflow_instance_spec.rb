@@ -5,9 +5,8 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
   let(:credentials) { {} }
   let(:inputs)      { {} }
 
-  let(:tenant)            { FactoryBot.create(:tenant) }
-  let(:user)              { FactoryBot.create(:user_with_group, :tenant => tenant) }
-  let(:workflow)          { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload, :credentials => credentials) }
+  let(:user)              { FactoryBot.create(:user_with_group) }
+  let(:workflow)          { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload.to_json, :credentials => credentials) }
   let(:workflow_instance) { FactoryBot.create(:workflows_automation_workflow_instance, :manager => ems, :parent => workflow, :payload => payload.to_json, :credentials => credentials, :context => context, :miq_task => miq_task, :run_by_userid => user.userid) }
   let(:miq_task)          { nil }
   let(:payload) do
@@ -61,7 +60,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
 
     context "with a Credentials property in the workflow_content" do
       let(:credentials) { {"username" => "$.my-credential.userid", "password" => "$.my-credential.password"} }
-      let(:workflow_content) do
+      let(:payload) do
         {
           "Comment" => "Example Workflow",
           "StartAt" => "FirstState",
@@ -84,22 +83,16 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
       end
 
       context "with an Authentication record" do
-        let(:miq_group)   { evm_owner.current_group }
-        let(:evm_owner)   { user }
-        let!(:credential) { FactoryBot.create(:workflows_automation_authentication, :resource => ems, :ems_ref => "my-credential", :name => "My Credential", :miq_group => miq_group, :userid => "my-user", :password => "shhhh!") }
+        let!(:credential) { FactoryBot.create(:workflows_automation_authentication, :resource => ems, :ems_ref => "my-credential", :name => "My Credential", :userid => "my-user", :password => "shhhh!") }
 
-        it "passes the resolved credential to the runner" do
-          expect(Floe::Workflow).to receive(:new).with(workflow_content, context["global"], {"username" => "my-user", "password" => "shhhh!"}).and_call_original
-          workflow_instance.run
+        before do
+          workflow.authentications << credential
+          workflow.save!
         end
 
-        context "from another tenant" do
-          let(:user2)     { FactoryBot.create(:user_with_group) }
-          let(:evm_owner) { user2 }
-
-          it "raises an exception" do
-            expect { workflow_instance.run }.to raise_error(ActiveRecord::RecordNotFound, /Couldn't find Authentication/)
-          end
+        it "passes the resolved credential to the runner" do
+          expect(Floe::Workflow).to receive(:new).with(payload.to_json, context["global"], {"username" => "my-user", "password" => "shhhh!"}).and_call_original
+          workflow_instance.run
         end
       end
     end
