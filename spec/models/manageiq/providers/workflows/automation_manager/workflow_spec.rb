@@ -16,6 +16,8 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
     }
   end
 
+  before { stub_settings_merge(:prototype => {:ems_workflows => {:enabled => true}}) }
+
   describe "#execute" do
     it "creates the workflow_instance" do
       workflow.execute(:inputs => inputs)
