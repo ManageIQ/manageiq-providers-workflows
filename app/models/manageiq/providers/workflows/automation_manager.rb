@@ -3,6 +3,8 @@ class ManageIQ::Providers::Workflows::AutomationManager < ManageIQ::Providers::E
   require_nested :Workflow
   require_nested :WorkflowInstance
 
+  supports_not :refresh_ems
+
   def self.hostname_required?
     # TODO: ExtManagementSystem is validating this
     false
