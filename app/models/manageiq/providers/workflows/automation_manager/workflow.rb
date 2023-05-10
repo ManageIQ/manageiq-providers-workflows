@@ -8,6 +8,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
   end
 
   def execute(run_by_userid: "admin", inputs: {})
+    raise _("execute is not enabled") unless Settings.prototype.ems_workflows.enabled
+
     require "floe"
     floe = Floe::Workflow.new(payload)
 

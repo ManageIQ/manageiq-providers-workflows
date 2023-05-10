@@ -1,5 +1,7 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
   def run_queue
+    raise _("run_queue is not enabled") unless Settings.prototype.ems_workflows.enabled
+
     queue_opts = {
       :class_name  => self.class.name,
       :instance_id => id,
@@ -38,6 +40,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
   end
 
   def run
+    raise _("run is not enabled") unless Settings.prototype.ems_workflows.enabled
+
     creds = credentials&.transform_values do |val|
       ManageIQ::Password.try_decrypt(val)
     end
