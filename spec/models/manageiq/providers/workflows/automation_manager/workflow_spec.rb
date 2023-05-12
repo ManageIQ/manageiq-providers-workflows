@@ -20,7 +20,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
 
   describe "#execute" do
     it "creates the workflow_instance" do
-      workflow.execute(:inputs => inputs)
+      workflow.run(inputs)
 
       expect(workflow.children.count).to eq(1)
       expect(ems.configuration_scripts.count).to eq(1)
@@ -36,14 +36,14 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
     end
 
     it "returns the task id" do
-      miq_task_id = workflow.execute(:inputs => inputs)
+      miq_task_id = workflow.run(inputs)
       expect(MiqTask.find(miq_task_id)).to have_attributes(
         :name => "Execute Workflow"
       )
     end
 
     it "queues WorkflowInstance#run" do
-      workflow.execute(:inputs => inputs)
+      workflow.run(inputs)
 
       workflow_instance = ems.configuration_scripts.first
 
@@ -58,18 +58,18 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
     end
 
     it "defaults to admin userid" do
-      workflow.execute(:inputs => inputs)
+      workflow.run(inputs)
 
       workflow_instance = ems.configuration_scripts.first
-      expect(workflow_instance.run_by_userid).to eq("admin")
-      expect(workflow_instance.miq_task.userid).to eq("admin")
+      expect(workflow_instance.run_by_userid).to eq("system")
+      expect(workflow_instance.miq_task.userid).to eq("system")
     end
 
     context "with another user" do
       let(:user) { FactoryBot.create(:user) }
 
       it "uses the userid provided" do
-        workflow.execute(:run_by_userid => user.userid)
+        workflow.run({}, user.userid)
 
         workflow_instance = ems.configuration_scripts.first
         expect(workflow_instance.run_by_userid).to eq(user.userid)
