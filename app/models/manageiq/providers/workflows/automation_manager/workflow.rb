@@ -4,7 +4,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
     name = json["Comment"]
 
     workflows_automation_manager = ManageIQ::Providers::Workflows::AutomationManager.first
-    create!(:manager => workflows_automation_manager, :name => name, :payload => json.to_json, :payload_type => "json", **kwargs)
+    create!(:manager => workflows_automation_manager, :name => name, :payload => JSON.pretty_generate(json), :payload_type => "json", **kwargs)
   end
 
   def run(inputs = {}, userid = "system")
