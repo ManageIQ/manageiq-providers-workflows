@@ -43,7 +43,16 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     raise _("run is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     creds = credentials&.transform_values do |val|
-      ManageIQ::Password.try_decrypt(val)
+      if val.start_with?("$.")
+        ems_ref, field = val.match(/^\$\.(?<ems_ref>.+)\.(?<field>.+)$/).named_captures.values_at("ems_ref", "field")
+
+        authentication = parent.authentications.find_by(:ems_ref => ems_ref)
+        raise ActiveRecord::RecordNotFound, "Couldn't find Authentication" if authentication.nil?
+
+        authentication.send(field)
+      else
+        val
+      end
     end
 
     wf = Floe::Workflow.new(payload, context["global"], creds)
