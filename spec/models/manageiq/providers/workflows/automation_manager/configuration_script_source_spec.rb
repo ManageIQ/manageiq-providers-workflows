@@ -1,4 +1,4 @@
-require_relative "fake_git_repo"
+require_relative "fake_workflows_repo"
 
 RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSource do
   context "with a local repo" do
@@ -19,7 +19,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
     before do
       FileUtils.mkdir_p(local_repo)
 
-      repo = FakeGitRepo.new(local_repo, repo_dir_structure)
+      repo = FakeWorkflowsRepo.new(local_repo, repo_dir_structure)
       repo.generate
       repo.git_branch_create("other_branch")
 
@@ -212,7 +212,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
         end
 
         it "finds all ASL workflows" do
-          FakeGitRepo.generate(nested_repo, nested_repo_structure)
+          FakeWorkflowsRepo.generate(nested_repo, nested_repo_structure)
 
           params[:scm_url] = "file://#{nested_repo}"
           record           = build_record
@@ -231,7 +231,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
         end
 
         it "finds only ASL workflows" do
-          FakeGitRepo.generate(well_documented_repo, well_documented_repo_structure)
+          FakeWorkflowsRepo.generate(well_documented_repo, well_documented_repo_structure)
 
           params[:scm_url] = "file://#{well_documented_repo}"
           record           = build_record
@@ -252,7 +252,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
         end
 
         it "finds only ASL workflows" do
-          FakeGitRepo.generate(hide_and_seek_repo, hide_and_seek_repo_structure)
+          FakeWorkflowsRepo.generate(hide_and_seek_repo, hide_and_seek_repo_structure)
 
           params[:scm_url] = "file://#{hide_and_seek_repo}"
           record           = build_record
