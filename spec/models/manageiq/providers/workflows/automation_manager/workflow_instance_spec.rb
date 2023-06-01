@@ -35,6 +35,26 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
       )
     end
 
+    context "with a zone" do
+      let(:zone) { FactoryBot.create(:zone) }
+
+      it "queues WorkflowInstance#run on that zone" do
+        workflow_instance.run_queue(:zone => zone.name)
+
+        queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name)
+        expect(queue_item.zone).to eq(zone.name)
+      end
+    end
+
+    context "with a role" do
+      it "queues WorkflowInstance#run on that role" do
+        workflow_instance.run_queue(:role => "ems_operations")
+
+        queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name)
+        expect(queue_item.role).to eq("ems_operations")
+      end
+    end
+
     context "with a miq_task" do
       let(:miq_task) { FactoryBot.create(:miq_task) }
 
@@ -58,6 +78,35 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
       workflow_instance.run
 
       expect(workflow_instance.reload.status).to eq("success")
+    end
+
+    context "with a zone and role" do
+      let(:zone) { FactoryBot.create(:zone) }
+      let(:payload) do
+        {
+          "Comment" => "Example Workflow",
+          "StartAt" => "FirstState",
+          "States"  => {
+            "FirstState"   => {
+              "Type" => "Pass",
+              "Next" => "SuccessState"
+            },
+            "SuccessState" => {
+              "Type" => "Succeed"
+            }
+          }
+        }
+      end
+
+      it "requeues with the same queue options" do
+        workflow_instance.run(:zone => zone.name, :role => "ems_operations")
+
+        queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name)
+        expect(queue_item).to have_attributes(
+          :zone => zone.name,
+          :role => "ems_operations"
+        )
+      end
     end
 
     context "with a Credentials property in the workflow_content" do
