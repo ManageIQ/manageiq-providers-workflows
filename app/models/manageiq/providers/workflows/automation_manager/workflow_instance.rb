@@ -1,13 +1,14 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
-  def run_queue
+  def run_queue(zone: nil, role: "automation")
     raise _("run_queue is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     queue_opts = {
       :class_name  => self.class.name,
       :instance_id => id,
       :method_name => "run",
-      :role        => "automate",
-      :args        => [],
+      :role        => role,
+      :zone        => zone,
+      :args        => [{:zone => zone, :role => role}],
     }
 
     if miq_task_id
@@ -40,7 +41,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     end
   end
 
-  def run
+  def run(zone: nil, role: "automation")
     raise _("run is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     creds = credentials&.transform_values do |val|
@@ -85,6 +86,6 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
 
     save!
 
-    run_queue if next_state.present?
+    run_queue(:zone => zone, :role => role) if next_state.present?
   end
 end
