@@ -1,6 +1,7 @@
 class ManageIQ::Providers::Workflows::AutomationManager < ManageIQ::Providers::EmbeddedAutomationManager
   require_nested :ConfigurationScriptSource
   require_nested :Credential
+  require_nested :ScmCredential
   require_nested :Workflow
   require_nested :WorkflowInstance
 
