@@ -7,7 +7,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
     create!(:manager => workflows_automation_manager, :name => name, :payload => JSON.pretty_generate(json), :payload_type => "json", **kwargs)
   end
 
-  def run(inputs: {}, userid: "system", zone: nil, role: "automation")
+  def run(inputs: {}, userid: "system", zone: nil, role: "automation", object: nil)
     raise _("execute is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     require "floe"
@@ -41,7 +41,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
       miq_task.update!(:context_data => {:workflow_instance_id => instance.id})
     end
 
-    instance.run_queue(:zone => zone, :role => role)
+    instance.run_queue(:zone => zone, :role => role, :object => object)
 
     miq_task.id
   end
