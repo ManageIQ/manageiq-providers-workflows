@@ -5,8 +5,6 @@ module ManageIQ
   module Providers
     module Workflows
       def self.seed
-        return unless Settings.prototype.ems_workflows.enabled
-
         # provider = ManageIQ::Providers::Workflows::Provider.in_my_region.first_or_initialize
         # provider.update!(
         #   :name => "Embedded Workflows",
