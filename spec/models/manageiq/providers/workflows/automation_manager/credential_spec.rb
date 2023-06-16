@@ -28,4 +28,23 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Credential do
       )
     end
   end
+
+  describe ".create_in_provider" do
+    let(:params) { {"name" => "My Credential", "ems_ref" => "my-credential", "userid" => "admin", "password" => "1234"} }
+
+    it "creates the credential with the requested params" do
+      expect(described_class.create_in_provider(ems.id, params)).to have_attributes(
+        :manager  => ems,
+        :name     => params["name"],
+        :ems_ref  => params["ems_ref"],
+        :userid   => params["userid"],
+        :password => params["password"]
+      )
+    end
+
+    it "rejects parameters that aren't allowed" do
+      expect { described_class.create_in_provider(ems.id, params.merge("resource" => "something nefarious")) }
+        .to raise_error(ArgumentError, "Invalid parameters: resource")
+    end
+  end
 end
