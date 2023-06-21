@@ -7,17 +7,12 @@ class ManageIQ::Providers::Workflows::AutomationManager::Credential < ManageIQ::
   COMMON_ATTRIBUTES = [
     {
       :component  => 'text-field',
-      :label      => N_('Name'),
-      :helperText => N_('Name of this credential'),
-      :name       => 'name',
-      :id         => 'name'
-    },
-    {
-      :component  => 'text-field',
       :label      => N_('Reference'),
       :helperText => N_('Unique reference for this credential'),
       :name       => 'ems_ref',
-      :id         => 'ems_ref'
+      :id         => 'ems_ref',
+      :isRequired => true,
+      :validate   => [{:type => "required"}]
     },
     {
       :component  => 'text-field',
