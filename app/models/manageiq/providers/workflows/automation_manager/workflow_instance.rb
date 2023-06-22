@@ -47,8 +47,10 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     end
   end
 
-  def run(zone: nil, role: "automation", object_type: nil, object_id: nil)
+  def run(args = {})
     raise _("run is not enabled") unless Settings.prototype.ems_workflows.enabled
+
+    zone, role, object_type, object_id = args.values_at(:zone, :role, :object_type, :object_id)
 
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
