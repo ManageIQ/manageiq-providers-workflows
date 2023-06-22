@@ -43,6 +43,9 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
 
         queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name)
         expect(queue_item.zone).to eq(zone.name)
+
+        queue_item.deliver
+        expect(workflow_instance.reload.status).to eq("success")
       end
     end
 
@@ -52,6 +55,9 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
 
         queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name)
         expect(queue_item.role).to eq("ems_operations")
+
+        queue_item.deliver
+        expect(workflow_instance.reload.status).to eq("success")
       end
     end
 
@@ -69,6 +75,9 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
             :method_name => :queue_callback
           }
         )
+
+        queue_item.deliver
+        expect(workflow_instance.reload.status).to eq("success")
       end
     end
   end
