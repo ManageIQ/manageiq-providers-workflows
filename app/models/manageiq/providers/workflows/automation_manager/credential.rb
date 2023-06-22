@@ -60,12 +60,4 @@ class ManageIQ::Providers::Workflows::AutomationManager::Credential < ManageIQ::
     :label      => N_('Workflows'),
     :attributes => API_ATTRIBUTES
   }.freeze
-
-  def self.params_to_attributes(params)
-    allowed_params     = API_ATTRIBUTES.pluck(:id)
-    unpermitted_params = params.keys - allowed_params
-    raise ArgumentError, _("Invalid parameters: %{params}" % {:params => unpermitted_params.join(", ")}) if unpermitted_params.any?
-
-    params
-  end
 end
