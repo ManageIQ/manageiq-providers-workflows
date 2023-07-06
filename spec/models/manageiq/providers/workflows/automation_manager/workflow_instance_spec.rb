@@ -1,13 +1,13 @@
 RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance do
   let(:ems)         { FactoryBot.create(:ems_workflows_automation, :zone => zone) }
   let(:zone)        { EvmSpecHelper.local_miq_server.zone }
-  let(:context)     { {"global" => inputs, "current_state" => "FirstState", "states" => []} }
+  let(:context)     { Floe::Workflow::Context.new(:input => input) }
   let(:credentials) { {} }
-  let(:inputs)      { {} }
+  let(:input)       { {} }
 
   let(:user)              { FactoryBot.create(:user_with_group) }
   let(:workflow)          { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload.to_json, :credentials => credentials) }
-  let(:workflow_instance) { FactoryBot.create(:workflows_automation_workflow_instance, :manager => ems, :parent => workflow, :payload => payload.to_json, :credentials => credentials, :context => context, :miq_task => miq_task, :run_by_userid => user.userid) }
+  let(:workflow_instance) { FactoryBot.create(:workflows_automation_workflow_instance, :manager => ems, :parent => workflow, :payload => payload.to_json, :credentials => credentials, :context => context.to_h, :miq_task => miq_task, :run_by_userid => user.userid) }
   let(:miq_task)          { nil }
   let(:payload) do
     {
@@ -151,7 +151,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
         end
 
         it "passes the resolved credential to the runner" do
-          expect(Floe::Workflow).to receive(:new).with(payload.to_json, context["global"], {"username" => "my-user", "password" => "shhhh!"}).and_call_original
+          expect(Floe::Workflow).to receive(:new).with(payload.to_json, context.to_h, {"username" => "my-user", "password" => "shhhh!"}).and_call_original
           workflow_instance.run
         end
       end

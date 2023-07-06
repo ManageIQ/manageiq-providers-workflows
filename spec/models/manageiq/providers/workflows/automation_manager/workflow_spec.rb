@@ -29,7 +29,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
         :type        => "ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance",
         :payload     => workflow.payload,
         :credentials => workflow.credentials,
-        :context     => {"global" => inputs, "current_state" => "FirstState", "states" => []},
+        :context     => {"Execution" => {"Input" => {}}, "State" => {}, "StateMachine" => {}, "States" => [], "Task" => {}},
         :output      => {},
         :status      => "pending"
       )
