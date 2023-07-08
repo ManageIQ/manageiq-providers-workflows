@@ -1,4 +1,4 @@
-RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Credential do
+RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowCredential do
   let(:ems)  { FactoryBot.create(:ems_workflows_automation, :zone => zone) }
   let(:zone) { EvmSpecHelper.local_miq_server.zone }
 
@@ -24,7 +24,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Credential do
 
       expect(record).to have_attributes(
         :ems_ref => "my-credential",
-        :type    => "ManageIQ::Providers::Workflows::AutomationManager::Credential"
+        :type    => "ManageIQ::Providers::Workflows::AutomationManager::WorkflowCredential"
       )
     end
   end
