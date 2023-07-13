@@ -134,7 +134,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
           :class_name  => described_class.name,
           :method_name => "create_in_provider",
           :priority    => MiqQueue::HIGH_PRIORITY,
-          :role        => "embedded_ansible",
+          :role        => nil,
           :zone        => nil
         )
       end
@@ -343,7 +343,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
           :class_name  => described_class.name,
           :method_name => "update_in_provider",
           :priority    => MiqQueue::HIGH_PRIORITY,
-          :role        => "embedded_ansible",
+          :role        => nil,
           :zone        => nil
         )
       end
@@ -378,7 +378,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
           :class_name  => described_class.name,
           :method_name => "delete_in_provider",
           :priority    => MiqQueue::HIGH_PRIORITY,
-          :role        => "embedded_ansible",
+          :role        => nil,
           :zone        => nil
         )
       end
