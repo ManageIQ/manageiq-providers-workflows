@@ -33,6 +33,26 @@ module ManageIQ
         def self.seedable_classes
           %w[ManageIQ::Providers::Workflows]
         end
+
+        def self.floe_docker_runner
+          require "miq_environment"
+          require "floe"
+
+          if MiqEnvironment::Command.is_podified?
+            host = ENV.fetch("KUBERNETES_SERVICE_HOST")
+            port = ENV.fetch("KUBERNETES_SERVICE_PORT")
+
+            Floe::Workflow::Runner::Kubernetes.new(
+              "server"     => URI::HTTPS.build(:host => host, :port => port).to_s,
+              "token_file" => "/run/secrets/kubernetes.io/serviceaccount/token",
+              "ca_cert"    => "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            )
+          elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
+            Floe::Workflow::Runner::Podman.new
+          else
+            Floe::Workflow::Runner::Docker.new
+          end
+        end
       end
     end
   end
