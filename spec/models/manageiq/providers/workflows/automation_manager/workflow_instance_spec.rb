@@ -3,7 +3,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
   let(:zone)        { EvmSpecHelper.local_miq_server.zone }
   let(:context)     { Floe::Workflow::Context.new(:input => input) }
   let(:credentials) { {} }
-  let(:input)       { {} }
+  let(:input)       { {"foo" => "bar"} }
 
   let(:user)              { FactoryBot.create(:user_with_group) }
   let(:workflow)          { FactoryBot.create(:workflows_automation_workflow, :manager => ems, :payload => payload.to_json, :credentials => credentials) }
@@ -87,6 +87,12 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
       workflow_instance.run
 
       expect(workflow_instance.reload.status).to eq("success")
+    end
+
+    it "sets the workflow output" do
+      workflow_instance.run
+
+      expect(workflow_instance.reload.output).to eq("foo" => "bar")
     end
 
     context "with a zone and role" do
