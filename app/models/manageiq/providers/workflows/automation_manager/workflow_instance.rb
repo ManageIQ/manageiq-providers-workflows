@@ -71,7 +71,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     wf = Floe::Workflow.new(payload, context, creds)
     wf.step
 
-    update!(:context => wf.context.to_h, :status => wf.status)
+    update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output)
 
     object.after_ae_delivery(status) if object.present? && object.respond_to?(:after_ae_delivery)
 
