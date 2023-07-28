@@ -65,13 +65,13 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
       expect(workflow_instance.miq_task.userid).to eq("system")
     end
 
-    it "defaults to automation role" do
+    it "defaults to automate role" do
       workflow.run(:inputs => inputs)
 
       workflow_instance = ems.configuration_scripts.first
       queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name, :method_name => "run")
 
-      expect(queue_item.role).to eq("automation")
+      expect(queue_item.role).to eq("automate")
     end
 
     context "with another user" do
