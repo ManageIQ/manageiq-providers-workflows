@@ -73,7 +73,19 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
 
     update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output)
 
-    object.after_ae_delivery(status) if object.present? && object.respond_to?(:after_ae_delivery)
+    if object.present? && object.respond_to?(:after_ae_delivery)
+      ae_result =
+        case status
+        when "running"
+          "retry"
+        when "success"
+          "ok"
+        else
+          status
+        end
+
+      object.after_ae_delivery(ae_result)
+    end
 
     run_queue(:zone => zone, :role => role, :object => object) unless wf.end?
   end
