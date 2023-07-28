@@ -1,5 +1,5 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
-  def run_queue(zone: nil, role: "automation", object: nil)
+  def run_queue(zone: nil, role: "automate", object: nil)
     raise _("run_queue is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     args = {:zone => zone, :role => role}
