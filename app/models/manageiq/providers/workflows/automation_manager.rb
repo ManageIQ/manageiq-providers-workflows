@@ -3,6 +3,7 @@ class ManageIQ::Providers::Workflows::AutomationManager < ManageIQ::Providers::E
   require_nested :Credential
   require_nested :ScmCredential
   require_nested :Workflow
+  require_nested :WorkflowDispatcher
   require_nested :WorkflowInstance
 
   supports_not :refresh_ems

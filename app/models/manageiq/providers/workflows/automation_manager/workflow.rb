@@ -7,7 +7,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
     create!(:manager => workflows_automation_manager, :name => name, :payload => JSON.pretty_generate(json), :payload_type => "json", **kwargs)
   end
 
-  def run(inputs: {}, userid: "system", zone: nil, role: "automate", object: nil)
+  def run(inputs: {}, userid: "system", zone: nil, role: "embedded_workflows", object: nil)
     raise _("execute is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     require "floe"

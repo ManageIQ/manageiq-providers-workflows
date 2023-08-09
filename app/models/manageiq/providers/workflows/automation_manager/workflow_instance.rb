@@ -11,6 +11,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     queue_opts = {
       :class_name  => self.class.name,
       :instance_id => id,
+      :queue_name  => "workflows",
       :method_name => "run",
       :role        => role,
       :zone        => zone,
