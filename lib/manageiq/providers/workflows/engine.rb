@@ -48,9 +48,13 @@ module ManageIQ
               "ca_cert"    => "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
             )
           elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
-            Floe::Workflow::Runner::Podman.new
+            options = {}
+            options["network"] = "host" unless Rails.env.production?
+            Floe::Workflow::Runner::Podman.new(options)
           else
-            Floe::Workflow::Runner::Docker.new
+            options = {}
+            options["network"] = "host" unless Rails.env.production?
+            Floe::Workflow::Runner::Docker.new(options)
           end
         end
       end
