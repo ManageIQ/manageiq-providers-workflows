@@ -56,13 +56,13 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
 
     creds = credentials&.transform_values do |val|
-      if val.start_with?("$.")
-        ems_ref, field = val.match(/^\$\.(?<ems_ref>.+)\.(?<field>.+)$/).named_captures.values_at("ems_ref", "field")
+      if val.kind_of?(Hash)
+        credential_ref, credential_field = val.values_at("credential_ref", "credential_field")
 
-        authentication = parent.authentications.find_by(:ems_ref => ems_ref)
+        authentication = parent.authentications.find_by(:ems_ref => credential_ref)
         raise ActiveRecord::RecordNotFound, "Couldn't find Authentication" if authentication.nil?
 
-        authentication.send(field)
+        authentication.send(credential_field)
       else
         val
       end
