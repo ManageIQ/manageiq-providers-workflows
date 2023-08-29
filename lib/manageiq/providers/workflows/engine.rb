@@ -49,7 +49,12 @@ module ManageIQ
             )
           elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
             options = {}
-            options["network"] = "host" unless Rails.env.production?
+            if Rails.env.production?
+              options["root"] = Rails.root.join("data/containers/storage").to_s
+            else
+              options["network"] = "host"
+            end
+
             Floe::Workflow::Runner::Podman.new(options)
           else
             options = {}
