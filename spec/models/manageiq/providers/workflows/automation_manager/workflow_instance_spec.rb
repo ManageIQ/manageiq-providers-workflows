@@ -125,7 +125,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
     end
 
     context "with a Credentials property in the workflow_content" do
-      let(:credentials) { {"username" => {"credential_ref" => "my-credential", "credential_field" => "userid"}, "password" => {"credential_ref" => "my-credential", "credential_field" => "password"}} }
+      let(:credentials) { {"username.$" => {"credential_ref" => "my-credential", "credential_field" => "userid"}, "password.$" => {"credential_ref" => "my-credential", "credential_field" => "password"}} }
       let(:payload) do
         {
           "Comment" => "Example Workflow",
@@ -134,8 +134,8 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
             "FirstState" => {
               "Type"        => "Succeed",
               "Credentials" => {
-                "username" => "$.username",
-                "password" => "$.password"
+                "username.$" => "$.username",
+                "password.$" => "$.password"
               }
             }
           }
