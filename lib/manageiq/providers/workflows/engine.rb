@@ -45,7 +45,8 @@ module ManageIQ
             Floe::Workflow::Runner::Kubernetes.new(
               "server"     => URI::HTTPS.build(:host => host, :port => port).to_s,
               "token_file" => "/run/secrets/kubernetes.io/serviceaccount/token",
-              "ca_cert"    => "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+              "ca_cert"    => "/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+              "namespace"  => File.read("/run/secrets/kubernetes.io/serviceaccount/namespace")
             )
           elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
             options = {}
