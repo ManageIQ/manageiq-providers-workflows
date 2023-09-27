@@ -1,5 +1,5 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
-  def run_queue(zone: nil, role: "automate", object: nil)
+  def run_queue(zone: nil, role: "automate", object: nil, deliver_on: nil, server_guid: nil)
     raise _("run_queue is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     args = {:zone => zone, :role => role}
@@ -12,9 +12,12 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
       :class_name  => self.class.name,
       :instance_id => id,
       :method_name => "run",
+      :queue_name  => "automate",
       :role        => role,
       :zone        => zone,
       :args        => [args],
+      :deliver_on  => deliver_on,
+      :server_guid => server_guid
     }
 
     if miq_task_id
@@ -69,7 +72,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     end
 
     wf = Floe::Workflow.new(payload, context, creds)
-    wf.step
+    wf.run_nonblock
 
     update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output)
 
@@ -87,6 +90,6 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
       object.after_ae_delivery(ae_result)
     end
 
-    run_queue(:zone => zone, :role => role, :object => object) unless wf.end?
+    run_queue(:zone => zone, :role => role, :object => object, :deliver_on => 10.seconds.from_now.utc, :server_guid => MiqServer.my_server.guid) unless wf.end?
   end
 end
