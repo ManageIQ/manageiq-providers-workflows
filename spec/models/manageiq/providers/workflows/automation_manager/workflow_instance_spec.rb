@@ -96,15 +96,16 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
     end
 
     context "with a zone and role" do
-      let(:zone) { FactoryBot.create(:zone) }
+      let(:zone) { EvmSpecHelper.local_miq_server.zone }
       let(:payload) do
         {
           "Comment" => "Example Workflow",
           "StartAt" => "FirstState",
           "States"  => {
             "FirstState"   => {
-              "Type" => "Pass",
-              "Next" => "SuccessState"
+              "Type"    => "Wait",
+              "Seconds" => 10,
+              "Next"    => "SuccessState"
             },
             "SuccessState" => {
               "Type" => "Succeed"
