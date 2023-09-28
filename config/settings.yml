@@ -26,4 +26,4 @@
         :ems_refresh_worker_workflows: {}
 :prototype:
   :ems_workflows:
-    :enabled: false
+    :enabled: true
