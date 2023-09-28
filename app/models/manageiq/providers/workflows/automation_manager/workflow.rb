@@ -12,6 +12,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
 
     require "floe"
     context = Floe::Workflow::Context.new(:input => inputs)
+    context.execution["_manageiq_api_url"] = MiqRegion.my_region.remote_ws_url
 
     miq_task = instance = nil
     transaction do
