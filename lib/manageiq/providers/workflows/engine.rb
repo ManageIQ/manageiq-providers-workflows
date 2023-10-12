@@ -42,12 +42,15 @@ module ManageIQ
             host = ENV.fetch("KUBERNETES_SERVICE_HOST")
             port = ENV.fetch("KUBERNETES_SERVICE_PORT")
 
-            Floe::Workflow::Runner::Kubernetes.new(
-              "server"     => URI::HTTPS.build(:host => host, :port => port).to_s,
-              "token_file" => "/run/secrets/kubernetes.io/serviceaccount/token",
-              "ca_cert"    => "/run/secrets/kubernetes.io/serviceaccount/ca.crt",
-              "namespace"  => File.read("/run/secrets/kubernetes.io/serviceaccount/namespace")
-            )
+            options = {
+              "server"               => URI::HTTPS.build(:host => host, :port => port).to_s,
+              "token_file"           => "/run/secrets/kubernetes.io/serviceaccount/token",
+              "ca_cert"              => "/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+              "namespace"            => File.read("/run/secrets/kubernetes.io/serviceaccount/namespace"),
+              "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT")
+            }
+
+            Floe::Workflow::Runner::Kubernetes.new(options)
           elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
             options = {}
             if Rails.env.production?
