@@ -47,7 +47,7 @@ module ManageIQ
               "token_file"           => "/run/secrets/kubernetes.io/serviceaccount/token",
               "ca_cert"              => "/run/secrets/kubernetes.io/serviceaccount/ca.crt",
               "namespace"            => File.read("/run/secrets/kubernetes.io/serviceaccount/namespace"),
-              "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT")
+              "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT", nil)
             }
 
             Floe::Workflow::Runner::Kubernetes.new(options)
