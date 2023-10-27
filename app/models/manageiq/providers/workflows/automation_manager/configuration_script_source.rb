@@ -1,8 +1,16 @@
 class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSource < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScriptSource
-  FRIENDLY_NAME = "Embedded Workflows Repository".freeze
+  FRIENDLY_NAME     = "Embedded Workflows Repository".freeze
+  BUILTIN_REPO_NAME = "ManageIQ".freeze
 
   def self.display_name(number = 1)
     n_('Repository (Embedded Workflows)', 'Repositories (Embedded Workflows)', number)
+  end
+
+  def self.seed
+    manager = ManageIQ::Providers::Workflows::AutomationManager.in_my_region.first
+    return if manager.nil?
+
+    manager.configuration_script_sources.find_or_create_by!(:type => name, :name => BUILTIN_REPO_NAME)
   end
 
   def sync
