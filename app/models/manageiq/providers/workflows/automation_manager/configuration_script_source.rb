@@ -18,9 +18,24 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
           next if filename.start_with?(".") || !filename.end_with?(".asl")
 
           payload = worktree.read_file(filename)
-          found   = current.delete(filename) || self.class.module_parent::Workflow.new(:configuration_script_source_id => id)
+          payload_valid, payload_error =
+            begin
+              Floe::Workflow.new(payload)
+              true
+            rescue Floe::InvalidWorkflowError => err
+              [false, err.message]
+            end
 
-          found.update!(:name => filename, :manager_id => manager_id, :payload => payload, :payload_type => "json")
+          found = current.delete(filename) || self.class.module_parent::Workflow.new(:configuration_script_source_id => id)
+
+          found.update!(
+            :name          => filename,
+            :manager_id    => manager_id,
+            :payload       => payload,
+            :payload_type  => "json",
+            :payload_valid => payload_valid,
+            :payload_error => payload_error
+          )
         end
       end
 
