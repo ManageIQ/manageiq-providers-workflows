@@ -8,10 +8,12 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
 
     to_delete = repo.configuration_script_payloads.pluck(:id)
     Vmdb::Plugins.embedded_workflows_content.each do |filename|
-      relative_filename = filename.to_s.split("content/workflows/").last
+      plugin, path = filename.to_s
+                             .match(/.+\/(?<plugin>.+)\/content\/workflows\/(?<path>.+)/)
+                             .values_at("plugin", "path")
 
       payload  = File.read(filename)
-      workflow = repo.configuration_script_payloads.find_or_initialize_by(:name => relative_filename)
+      workflow = repo.configuration_script_payloads.find_or_initialize_by(:name => "#{plugin}/#{path}")
 
       workflow.update!(:type => name, :manager => manager, :payload => payload, :payload_type => "json")
 
