@@ -11,35 +11,28 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
     transaction do
       current = configuration_script_payloads.index_by(&:name)
 
-      git_repository.update_repo
-      git_repository.with_worktree do |worktree|
-        worktree.ref = scm_branch
-        worktree.blob_list.each do |filename|
-          next if filename.start_with?(".") || !filename.end_with?(".asl")
+      each_file do |filename, payload|
+        payload_valid, payload_error =
+          begin
+            Floe::Workflow.new(payload)
+            true
+          rescue Floe::InvalidWorkflowError => err
+            [false, err.message]
+          end
 
-          payload = worktree.read_file(filename)
-          payload_valid, payload_error =
-            begin
-              Floe::Workflow.new(payload)
-              true
-            rescue Floe::InvalidWorkflowError => err
-              [false, err.message]
-            end
+        found = current.delete(filename) || self.class.module_parent::Workflow.new(:configuration_script_source_id => id)
 
-          found = current.delete(filename) || self.class.module_parent::Workflow.new(:configuration_script_source_id => id)
-
-          found.update!(
-            :name          => filename,
-            :manager_id    => manager_id,
-            :payload       => payload,
-            :payload_type  => "json",
-            :payload_valid => payload_valid,
-            :payload_error => payload_error
-          )
-        end
+        found.update!(
+          :name          => filename,
+          :manager_id    => manager_id,
+          :payload       => payload,
+          :payload_type  => "json",
+          :payload_valid => payload_valid,
+          :payload_error => payload_error
+        )
       end
 
-      current.values.each(&:destroy)
+      current.each_value(&:destroy)
       configuration_script_payloads.reload
     end
 
@@ -47,5 +40,18 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
   rescue => error
     update!(:status => "error", :last_updated_on => Time.zone.now, :last_update_error => error)
     raise error
+  end
+
+  def each_file
+    git_repository.update_repo
+    git_repository.with_worktree do |worktree|
+      worktree.ref = scm_branch
+      worktree.blob_list.each do |filename|
+        next if filename.start_with?(".") || !filename.end_with?(".asl")
+
+        payload = worktree.read_file(filename)
+        yield filename, payload
+      end
+    end
   end
 end
