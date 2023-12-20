@@ -67,14 +67,27 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
 
         [key.chomp(".$"), authentication.send(credential_field)]
       else
-        [key, val]
+        [key, ManageIQ::Password.try_decrypt(val)]
       end
     end
 
     wf = Floe::Workflow.new(payload, context, creds)
     wf.run_nonblock
 
-    update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output)
+    wf.credentials.each do |key, val|
+      if credentials.key?("#{key}.$")
+        credential_ref, credential_field = credentials["#{key}.$"].values_at("credential_ref", "credential_field")
+        authentication = parent.authentications.find_by(:ems_ref => credential_ref)
+        next if authentication.send(credential_field) == val
+
+        # Delete the mapped credential and set the new value
+        credentials.delete("#{key}.$")
+      end
+
+      credentials[key] = ManageIQ::Password.encrypt(val)
+    end
+
+    update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output, :credentials => credentials)
 
     if object.present? && object.respond_to?(:after_ae_delivery)
       ae_result =
