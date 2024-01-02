@@ -58,34 +58,10 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
 
-    creds = credentials&.to_h do |key, val|
-      if key.end_with?(".$")
-        credential_ref, credential_field = val.values_at("credential_ref", "credential_field")
-
-        authentication = parent.authentications.find_by(:ems_ref => credential_ref)
-        raise ActiveRecord::RecordNotFound, "Couldn't find Authentication" if authentication.nil?
-
-        [key.chomp(".$"), authentication.send(credential_field)]
-      else
-        [key, ManageIQ::Password.try_decrypt(val)]
-      end
-    end
-
+    creds = resolved_credentials
     wf = Floe::Workflow.new(payload, context, creds)
     wf.run_nonblock
-
-    wf.credentials.each do |key, val|
-      if credentials.key?("#{key}.$")
-        credential_ref, credential_field = credentials["#{key}.$"].values_at("credential_ref", "credential_field")
-        authentication = parent.authentications.find_by(:ems_ref => credential_ref)
-        next if authentication.send(credential_field) == val
-
-        # Delete the mapped credential and set the new value
-        credentials.delete("#{key}.$")
-      end
-
-      credentials[key] = ManageIQ::Password.encrypt(val)
-    end
+    update_credentials!(wf.credentials)
 
     update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output, :credentials => credentials)
 
@@ -104,5 +80,47 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     end
 
     run_queue(:zone => zone, :role => role, :object => object, :deliver_on => 10.seconds.from_now.utc, :server_guid => MiqServer.my_server.guid) unless wf.end?
+  end
+
+  private
+
+  # Return a new hash that has all credential values resolved
+  #
+  # If a credential key ends with .$ then the value is looked up in the
+  #  authentications table
+  # Otherwise the value is decrypted from the :credentials jsonb column
+  def resolved_credentials
+    credentials&.to_h do |key, val|
+      if key.end_with?(".$")
+        [key.chomp(".$"), resolve_mapped_credential(val)]
+      else
+        [key, ManageIQ::Password.try_decrypt(val)]
+      end
+    end
+  end
+
+  def update_credentials!(workflow_credentials)
+    workflow_credentials.each do |key, val|
+      # If the workflow has changed a credential that is mapped to an Authentication record
+      # drop the mapping and replace it with an in-line encrypted value
+      if credentials.key?("#{key}.$")
+        # If the value is unchanged then we don't need to update anything
+        next if resolve_mapped_credential(credentials["#{key}.$"]) == val
+
+        # Delete the mapped credential and set the new value
+        credentials.delete("#{key}.$")
+      end
+
+      credentials[key] = ManageIQ::Password.encrypt(val)
+    end
+  end
+
+  def resolve_mapped_credential(mapping)
+    credential_ref, credential_field = mapping.values_at("credential_ref", "credential_field")
+
+    authentication = parent.authentications.find_by(:ems_ref => credential_ref)
+    raise ActiveRecord::RecordNotFound, "Couldn't find Authentication" if authentication.nil?
+
+    authentication.send(credential_field)
   end
 end
