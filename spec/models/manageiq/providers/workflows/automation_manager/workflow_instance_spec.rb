@@ -95,6 +95,41 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
       expect(workflow_instance.reload.output).to eq("foo" => "bar")
     end
 
+    context "with a workflow that sets a credential" do
+      let(:payload) do
+        {
+          "Comment" => "Example Workflow",
+          "StartAt" => "FirstState",
+          "States"  => {
+            "FirstState" => {
+              "Type"       => "Pass",
+              "Result"     => {"Bearer" => "TOKEN"},
+              "ResultPath" => "$.Credentials",
+              "End"        => true
+            }
+          }
+        }
+      end
+
+      it "adds the credential to the credentials jsonb hash" do
+        workflow_instance.run
+
+        expected_value = ManageIQ::Password.encrypt("TOKEN")
+        expect(workflow_instance.reload.credentials).to include("Bearer" => expected_value)
+      end
+
+      context "with an existing value" do
+        let(:credentials) { {"Bearer" => "OLD_TOKEN"} }
+
+        it "updates the credential in the credentials jsonb hash" do
+          workflow_instance.run
+
+          expected_value = ManageIQ::Password.encrypt("TOKEN")
+          expect(workflow_instance.reload.credentials).to include("Bearer" => expected_value)
+        end
+      end
+    end
+
     context "with a zone and role" do
       let(:zone) { EvmSpecHelper.local_miq_server.zone }
       let(:payload) do
@@ -160,6 +195,34 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
         it "passes the resolved credential to the runner" do
           expect(Floe::Workflow).to receive(:new).with(payload.to_json, context.to_h, {"username" => "my-user", "password" => "shhhh!"}).and_call_original
           workflow_instance.run
+        end
+
+        context "with a state that sets a credential" do
+          let(:payload) do
+            {
+              "Comment" => "Example Workflow",
+              "StartAt" => "FirstState",
+              "States"  => {
+                "FirstState" => {
+                  "Type"        => "Pass",
+                  "Result"      => {"password" => "new_password"},
+                  "ResultPath"  => "$.Credentials",
+                  "Credentials" => {
+                    "username.$" => "$.username",
+                    "password.$" => "$.password"
+                  },
+                  "End"         => true
+                }
+              }
+            }
+          end
+
+          it "replaces the mapped credential in the credentials hash" do
+            workflow_instance.run
+
+            expected_value = ManageIQ::Password.encrypt("new_password")
+            expect(workflow_instance.reload.credentials).to include("password" => expected_value)
+          end
         end
       end
     end
