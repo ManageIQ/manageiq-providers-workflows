@@ -100,7 +100,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
   end
 
   def update_credentials!(workflow_credentials)
-    workflow_credentials.each do |key, val|
+    workflow_credentials&.each do |key, val|
       # If the workflow has changed a credential that is mapped to an Authentication record
       # drop the mapping and replace it with an in-line encrypted value
       if credentials.key?("#{key}.$")
