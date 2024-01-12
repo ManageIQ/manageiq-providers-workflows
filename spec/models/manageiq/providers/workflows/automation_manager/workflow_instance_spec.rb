@@ -95,6 +95,16 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
       expect(workflow_instance.reload.output).to eq("foo" => "bar")
     end
 
+    context "with credentials=nil" do
+      let(:credentials) { nil }
+
+      it "sets the status to success" do
+        workflow_instance.run
+
+        expect(workflow_instance.reload.status).to eq("success")
+      end
+    end
+
     context "with a workflow that sets a credential" do
       let(:payload) do
         {
