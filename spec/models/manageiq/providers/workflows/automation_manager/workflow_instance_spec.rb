@@ -128,6 +128,18 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
         expect(workflow_instance.reload.credentials).to include("Bearer" => expected_value)
       end
 
+      context "with credentials=nil" do
+        let(:credentials) { nil }
+
+        it "sets the status to success" do
+          workflow_instance.run
+
+          expect(workflow_instance.reload.status).to eq("success")
+          expected_value = ManageIQ::Password.encrypt("TOKEN")
+          expect(workflow_instance.reload.credentials).to include("Bearer" => expected_value)
+        end
+      end
+
       context "with an existing value" do
         let(:credentials) { {"Bearer" => "OLD_TOKEN"} }
 

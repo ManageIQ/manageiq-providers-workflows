@@ -27,7 +27,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
         :run_by_userid => userid,
         :miq_task      => miq_task,
         :payload       => payload,
-        :credentials   => credentials,
+        :credentials   => credentials || {},
         :context       => context.to_h,
         :output        => inputs,
         :status        => "pending"
