@@ -48,21 +48,26 @@ module ManageIQ
               "ca_cert"              => "/run/secrets/kubernetes.io/serviceaccount/ca.crt",
               "namespace"            => File.read("/run/secrets/kubernetes.io/serviceaccount/namespace"),
               "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT", nil)
-            }
+            }.merge(Settings.ems.ems_workflows.runner_options.kubernetes)
 
             Floe::Workflow::Runner::Kubernetes.new(options)
           elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
             options = {}
+
             if Rails.env.production?
               options["root"] = Rails.root.join("data/containers/storage").to_s
             else
               options["network"] = "host"
             end
 
+            options.merge!(Settings.ems.ems_workflows.runner_options.podman)
+
             Floe::Workflow::Runner::Podman.new(options)
           else
             options = {}
             options["network"] = "host" unless Rails.env.production?
+            options.merge!(Settings.ems.ems_workflows.runner_options.docker)
+
             Floe::Workflow::Runner::Docker.new(options)
           end
         end

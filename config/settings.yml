@@ -3,6 +3,13 @@
     :blacklisted_event_names: []
     :event_handling:
       :event_groups:
+    :runner_options:
+      :docker:
+        :pull_policy: missing
+      :kubernetes:
+        :pull_policy: Always
+      :podman:
+        :pull_policy: newer
 :ems_refresh:
   :workflows:
     :refresh_interval: 15.minutes
