@@ -45,8 +45,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
       miq_task.update_status(MiqTask::STATE_ACTIVE, MiqTask::STATUS_OK, "Workflow running") # TODO: Can we get the last state here?
     when "success"
       miq_task.update_status(MiqTask::STATE_FINISHED, MiqTask::STATUS_OK, "Workflow completed successfully")
-    when "error"
-      miq_task.update_status(MiqTask::STATE_FINISHED, MiqTask::STATUS_ERROR, "Workflow completed in failure") # TODO: Not sure if this should be MiqTask::STATUS_WARN instead?
+    when "failure"
+      miq_task.update_status(MiqTask::STATE_FINISHED, MiqTask::STATUS_ERROR, "Workflow failed") # TODO: Not sure if this should be MiqTask::STATUS_WARN instead?
     end
   end
 

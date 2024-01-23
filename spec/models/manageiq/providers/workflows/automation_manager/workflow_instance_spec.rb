@@ -79,6 +79,37 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
         queue_item.deliver
         expect(workflow_instance.reload.status).to eq("success")
       end
+
+      it "updates the task status" do
+        workflow_instance.run_queue
+
+        queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name)
+        queue_item.deliver_and_process
+        expect(workflow_instance.miq_task.reload).to have_attributes(:state => "Finished", :status => "Ok", :message => "Workflow completed successfully")
+      end
+
+      context "with a workflow failure" do
+        let(:payload) do
+          {
+            "Comment" => "Example Workflow",
+            "StartAt" => "FirstState",
+            "States"  => {
+              "FirstState" => {
+                "Type"  => "Fail",
+                "Error" => "Failed!"
+              }
+            }
+          }
+        end
+
+        it "updates the task status" do
+          workflow_instance.run_queue
+
+          queue_item = MiqQueue.find_by(:class_name => workflow_instance.class.name)
+          queue_item.deliver_and_process
+          expect(workflow_instance.miq_task.reload).to have_attributes(:state => "Finished", :status => "Error", :message => "Workflow failed")
+        end
+      end
     end
   end
 
