@@ -60,7 +60,7 @@ module ManageIQ
 
             Floe::Workflow::Runner::Podman.new(options)
           else
-            options = floe_runner_settings.docker
+            options = floe_runner_settings.docker.to_hash
 
             Floe::Workflow::Runner::Docker.new(options)
           end
