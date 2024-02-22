@@ -34,7 +34,7 @@ module ManageIQ
           %w[ManageIQ::Providers::Workflows]
         end
 
-        def self.floe_docker_runner
+        def self.set_floe_runner
           require "miq_environment"
           require "floe"
 
@@ -52,17 +52,17 @@ module ManageIQ
               "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT", nil)
             }.merge(floe_runner_settings.kubernetes)
 
-            Floe::Workflow::Runner::Kubernetes.new(options)
+            Floe.set_runner("docker", "kubernetes", options)
           elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
             options = {}
             options["root"] = Rails.root.join("data/containers/storage").to_s if Rails.env.production?
             options.merge!(floe_runner_settings.podman)
 
-            Floe::Workflow::Runner::Podman.new(options)
+            Floe.set_runner("docker", "podman", options)
           else
             options = floe_runner_settings.docker.to_hash
 
-            Floe::Workflow::Runner::Docker.new(options)
+            Floe.set_runner("docker", "docker", options)
           end
         end
       end
