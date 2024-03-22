@@ -11,8 +11,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
     raise _("execute is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     require "floe"
-    context = Floe::Workflow::Context.new(:input => inputs)
-    context.execution["_manageiq_api_url"] = MiqRegion.my_region.remote_ws_url
+    context = Floe::Workflow::Context.new({"Execution" => {"_manageiq_api_url" => MiqRegion.my_region.remote_ws_url}}, :input => inputs)
 
     miq_task = instance = nil
     transaction do
