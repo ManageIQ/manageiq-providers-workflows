@@ -31,7 +31,7 @@ module ManageIQ
         end
 
         def self.seedable_classes
-          %w[ManageIQ::Providers::Workflows]
+          %w[ManageIQ::Providers::Workflows ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSource ManageIQ::Providers::Workflows::AutomationManager::Workflow]
         end
 
         def self.set_floe_runner
