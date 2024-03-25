@@ -37,13 +37,26 @@ module ManageIQ
           ]
         end
 
+        def self.floe_runner_name
+          if (runner_setting = Settings.ems.ems_workflows.runner.presence)
+            runner_setting
+          elsif MiqEnvironment::Command.is_podified?
+            "kubernetes"
+          elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
+            "podman"
+          else
+            "docker"
+          end
+        end
+
         def self.set_floe_runner
           require "miq_environment"
           require "floe"
 
           floe_runner_settings = Settings.ems.ems_workflows.runner_options
 
-          if MiqEnvironment::Command.is_podified?
+          case floe_runner_name
+          when "kubernetes"
             host = ENV.fetch("KUBERNETES_SERVICE_HOST")
             port = ENV.fetch("KUBERNETES_SERVICE_PORT")
 
@@ -56,16 +69,18 @@ module ManageIQ
             }.merge(floe_runner_settings.kubernetes)
 
             Floe.set_runner("docker", "kubernetes", options)
-          elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
+          when "podman"
             options = {}
             options["root"] = Rails.root.join("data/containers/storage").to_s if Rails.env.production?
             options.merge!(floe_runner_settings.podman)
 
             Floe.set_runner("docker", "podman", options)
-          else
+          when "docker"
             options = floe_runner_settings.docker.to_hash
 
             Floe.set_runner("docker", "docker", options)
+          else
+            raise "Unknown runner: #{floe_runner_name}. expecting [kubernetes, podman, docker]"
           end
         end
       end
