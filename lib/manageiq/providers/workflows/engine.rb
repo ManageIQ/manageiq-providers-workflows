@@ -34,7 +34,6 @@ module ManageIQ
           %w[
             ManageIQ::Providers::Workflows
             ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSource
-            ManageIQ::Providers::Workflows::AutomationManager::Workflow
           ]
         end
 
