@@ -1,6 +1,6 @@
 class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSource < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScriptSource
   FRIENDLY_NAME     = "Embedded Workflows Repository".freeze
-  BUILTIN_REPO_NAME = "ManageIQ".freeze
+  BUILTIN_REPO_NAME = "ManageIQ Built-in Workflows".freeze
 
   supports :update do
     _("Cannot update the built-in repository") if name == BUILTIN_REPO_NAME
