@@ -14,7 +14,7 @@ module Spec
 
       def dummy_workflow_data_for(_filename)
         <<~WORKFLOW_DATA
-          {"Comment": "hello world"}
+          {"Comment": "hello world", "States": {"Start": {"Type": "Succeed"}}, "StartAt": "Start"}
         WORKFLOW_DATA
       end
     end

@@ -76,8 +76,24 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
   end
 
   def create_workflow_from_payload(name, payload)
+    floe_workflow =
+      begin
+        Floe::Workflow.new(payload)
+      rescue Floe::InvalidWorkflowError
+        nil
+      end
+
+    description = floe_workflow&.comment
+
     configuration_script_payloads.find_or_initialize_by(:name => name).tap do |wf|
-      wf.update!(:name => name, :manager_id => manager_id, :type => self.class.module_parent::Workflow.name, :payload => payload, :payload_type => "json")
+      wf.update!(
+        :name         => name,
+        :description  => description,
+        :manager_id   => manager_id,
+        :type         => self.class.module_parent::Workflow.name,
+        :payload      => payload,
+        :payload_type => "json"
+      )
     end
   end
 end
