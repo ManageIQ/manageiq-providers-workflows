@@ -2,6 +2,13 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
   FRIENDLY_NAME     = "Embedded Workflows Repository".freeze
   BUILTIN_REPO_NAME = "ManageIQ".freeze
 
+  supports :update do
+    _("Cannot update the built-in repository") if name == BUILTIN_REPO_NAME
+  end
+  supports :delete do
+    _("Cannot delete the built-in repository") if name == BUILTIN_REPO_NAME
+  end
+
   def self.display_name(number = 1)
     n_('Repository (Embedded Workflows)', 'Repositories (Embedded Workflows)', number)
   end
