@@ -14,6 +14,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
   end
 
   def self.seed
+    return unless Settings.prototype.ems_workflows.seed_builtin_workflows
+
     manager = ManageIQ::Providers::Workflows::AutomationManager.in_my_region.first
     return if manager.nil?
 
