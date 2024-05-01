@@ -52,6 +52,7 @@ module ManageIQ
         def self.set_floe_runner
           require "miq_environment"
           require "floe"
+          require "floe/container_runner"
 
           floe_runner_settings = Settings.ems.ems_workflows.runner_options
 
@@ -68,17 +69,17 @@ module ManageIQ
               "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT", nil)
             }.merge(floe_runner_settings.kubernetes)
 
-            Floe.set_runner("docker", "kubernetes", options)
+            Floe::ContainerRunner.set_runner("kubernetes", options)
           when "podman"
             options = {}
             options["root"] = Rails.root.join("data/containers/storage").to_s if Rails.env.production?
             options.merge!(floe_runner_settings.podman)
 
-            Floe.set_runner("docker", "podman", options)
+            Floe::ContainerRunner.set_runner("podman", options)
           when "docker"
             options = floe_runner_settings.docker.to_hash
 
-            Floe.set_runner("docker", "docker", options)
+            Floe::ContainerRunner.set_runner("docker", options)
           else
             raise "Unknown runner: #{floe_runner_name}. expecting [kubernetes, podman, docker]"
           end
