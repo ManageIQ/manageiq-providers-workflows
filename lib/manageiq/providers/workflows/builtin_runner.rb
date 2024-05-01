@@ -14,7 +14,7 @@ module ManageIQ
 
           # TODO: prevent calling anything except the specifics methods, e.g. you shouldn't be able to call .to_s.
           #       Maybe make BuiltinMethods a BasicObject?
-          BuiltinMethods.public_send(method, params)
+          BuiltinMethods.public_send(method, params, secrets, context)
         end
 
         def cleanup(_runner_context)

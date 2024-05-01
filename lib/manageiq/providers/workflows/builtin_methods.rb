@@ -2,15 +2,8 @@ module ManageIQ
   module Providers
     module Workflows
       class BuiltinMethods < BasicObject
-        def self.email(params = {})
-          options = {
-            :to      => params["To"],
-            :from    => params["From"],
-            :subject => params["Subject"],
-            :cc      => params["Cc"],
-            :bcc     => params["Bcc"],
-            :body    => params["Body"]
-          }
+        def self.email(params = {}, _secrets = {}, _context = {})
+          options = params.slice("To", "From", "Subject", "Cc", "Bcc", "Body", "Attachment").transform_keys { |k| k.downcase.to_sym }
 
           miq_task = ::GenericMailer.deliver_task(:generic_notification, options)
 
