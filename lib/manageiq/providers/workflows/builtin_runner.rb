@@ -4,7 +4,7 @@ module ManageIQ
       require "floe"
 
       class BuiltinRunnner < Floe::Runner
-        SCHEME = "builtin"
+        SCHEME = "builtin".freeze
 
         def run_async!(resource, params = {}, secrets = {}, context = {})
           scheme_prefix = "#{SCHEME}://"
