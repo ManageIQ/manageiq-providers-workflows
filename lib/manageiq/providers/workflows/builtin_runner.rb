@@ -12,12 +12,19 @@ module ManageIQ
 
           method = resource.sub(scheme_prefix, "")
 
+          runner_context = {"method" => method}
+
           # TODO: prevent calling anything except the specifics methods, e.g. you shouldn't be able to call .to_s.
           #       Maybe make BuiltinMethods a BasicObject?
-          BuiltinMethods.public_send(method, params, secrets, context)
+          method_result = BuiltinMethods.public_send(method, params, secrets, context)
+          method_result.merge(runner_context)
         end
 
-        def cleanup(_runner_context)
+        def cleanup(runner_context)
+          method = runner_context["method"]
+          raise ArgumentError if method.nil?
+
+          BuiltinMethods.send("#{method}_cleanup", runner_context)
         end
 
         def wait(timeout: nil, events: %i[create update delete])
@@ -25,18 +32,10 @@ module ManageIQ
         end
 
         def status!(runner_context)
-          if runner_context["miq_task_id"]
-            miq_task = MiqTask.find(runner_context["miq_task_id"])
-            return if miq_task.nil?
+          method = runner_context["method"]
+          raise ArgumentError if method.nil?
 
-            runner_context["running"] = miq_task.state != MiqTask::STATE_FINISHED
-            unless runner_context["running"]
-              runner_context["success"] = miq_task.status == MiqTask::STATUS_OK
-            end
-          else
-            runner_context["running"] = false
-            runner_context["success"] = true
-          end
+          BuiltinMethods.send("#{method}_status!", runner_context)
         end
 
         def running?(runner_context)
