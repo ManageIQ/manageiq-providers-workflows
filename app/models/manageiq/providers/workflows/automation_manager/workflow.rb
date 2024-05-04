@@ -11,7 +11,13 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
     raise _("execute is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     require "floe"
-    execution_context = execution_context.merge("_manageiq_api_url" => MiqRegion.my_region.remote_ws_url)
+
+    execution_context = execution_context.dup
+    execution_context["_manageiq_api_url"] = MiqRegion.my_region.remote_ws_url
+    if object
+      execution_context["_object_type"] = object.class.name
+      execution_context["_object_id"]   = object.id
+    end
     context = Floe::Workflow::Context.new({"Execution" => execution_context}, :input => inputs)
 
     miq_task = instance = nil
