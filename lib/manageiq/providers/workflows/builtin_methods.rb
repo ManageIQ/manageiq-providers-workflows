@@ -14,6 +14,26 @@ module ManageIQ
           miq_task_status!(runner_context)
         end
 
+        def self.embedded_ansible(params = {}, _secrets = {}, _context = {})
+          repository_url, repository_branch, playbook, hosts = params.values_at("RepositoryUrl", "RepositoryBranch", "Playbook", "Hosts")
+
+          hosts ||= %w[localhost]
+
+          repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
+          return BuiltinRunner.error!(runner_context, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
+
+          playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook)
+          return BuiltinRunner.error!(runner_context, :cause => "Unable to find Playbook: Name: [#{playbook}] Repository: #{repository.name}") if playbook.nil?
+
+          job = playbook.run(:hosts => hosts)
+
+          {"miq_task_id" => job.miq_task_id}
+        end
+
+        private_class_method def self.embedded_ansible_status!(runner_context)
+          miq_task_status!(runner_context)
+        end
+
         def self.provision_execute(_params = {}, _secrets = {}, context = {})
           object_type, object_id = context.execution.values_at("_object_type", "_object_id")
           return BuiltinRunnner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
