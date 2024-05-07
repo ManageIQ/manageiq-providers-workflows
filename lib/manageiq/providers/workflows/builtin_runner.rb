@@ -55,6 +55,12 @@ module ManageIQ
             "running" => false, "success" => false, "output" => {"Error" => error, "Cause" => cause}
           )
         end
+
+        def self.success!(runner_context = {}, output:)
+          runner_context.merge!(
+            "running" => false, "success" => true, "output" => output
+          )
+        end
       end
     end
   end
