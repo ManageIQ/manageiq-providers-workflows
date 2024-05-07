@@ -10,13 +10,13 @@ module ManageIQ
           scheme_prefix = "#{SCHEME}://"
           raise ArgumentError, "Invalid resource" unless resource&.start_with?(scheme_prefix)
 
-          method = resource.sub(scheme_prefix, "")
+          method_name = resource.sub(scheme_prefix, "")
 
-          runner_context = {"method" => method}
+          runner_context = {"method" => method_name}
 
           # TODO: prevent calling anything except the specifics methods, e.g. you shouldn't be able to call .to_s.
           #       Maybe make BuiltinMethods a BasicObject?
-          method_result = BuiltinMethods.public_send(method, params, secrets, context)
+          method_result = BuiltinMethods.public_send(method_name, params, secrets, context)
           method_result.merge(runner_context)
         rescue => err
           cleanup(runner_context)
@@ -24,10 +24,10 @@ module ManageIQ
         end
 
         def cleanup(runner_context)
-          method = runner_context["method"]
-          raise ArgumentError if method.nil?
+          method_name = runner_context["method"]
+          raise ArgumentError if method_name.nil?
 
-          cleanup_method = "#{method}_cleanup"
+          cleanup_method = "#{method_name}_cleanup"
           return unless BuiltinMethods.respond_to?(cleanup_method, true)
 
           BuiltinMethods.send(cleanup_method, runner_context)
@@ -38,10 +38,10 @@ module ManageIQ
         end
 
         def status!(runner_context)
-          method = runner_context["method"]
-          raise ArgumentError if method.nil?
+          method_name = runner_context["method"]
+          raise ArgumentError if method_name.nil?
 
-          BuiltinMethods.send("#{method}_status!", runner_context)
+          BuiltinMethods.send("#{method_name}_status!", runner_context)
         end
 
         def running?(runner_context)
