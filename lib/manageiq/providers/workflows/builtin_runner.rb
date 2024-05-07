@@ -18,6 +18,9 @@ module ManageIQ
           #       Maybe make BuiltinMethods a BasicObject?
           method_result = BuiltinMethods.public_send(method, params, secrets, context)
           method_result.merge(runner_context)
+        rescue => err
+          cleanup(runner_context)
+          error!(runner_context, :cause => err.to_s)
         end
 
         def cleanup(runner_context)
@@ -51,6 +54,12 @@ module ManageIQ
 
         def output(runner_context)
           runner_context["output"]
+        end
+
+        def self.error!(runner_context = {}, cause:, error: "States.TaskFailed")
+          runner_context.merge!(
+            "running" => false, "success" => false, "output" => {"Error" => error, "Cause" => cause}
+          )
         end
       end
     end
