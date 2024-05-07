@@ -11,6 +11,10 @@ module ManageIQ
         end
 
         private_class_method def self.email_status!(runner_context)
+          miq_task_status!(runner_context)
+        end
+
+        private_class_method def self.miq_task_status!(runner_context)
           miq_task = ::MiqTask.find(runner_context["miq_task_id"])
           return if miq_task.nil?
 
