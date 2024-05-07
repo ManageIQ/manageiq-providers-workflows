@@ -16,11 +16,15 @@ module ManageIQ
 
         private_class_method def self.miq_task_status!(runner_context)
           miq_task = ::MiqTask.find(runner_context["miq_task_id"])
-          return if miq_task.nil?
+          return error_payload(:cause => "Unable to find MiqTask id: [#{runner_context["miq_task_id"]}]") if miq_task.nil?
 
           runner_context["running"] = miq_task.state != ::MiqTask::STATE_FINISHED
           runner_context["success"] = miq_task.status == ::MiqTask::STATUS_OK unless runner_context["running"]
           runner_context
+        end
+
+        private_class_method def self.error_payload(cause:, error: "States.TaskFailed")
+          {"running" => false, "success" => false, "output" => {"Error" => error, "Cause" => cause}}
         end
       end
     end
