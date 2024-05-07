@@ -18,9 +18,6 @@ module ManageIQ
           runner_context["success"] = miq_task.status == ::MiqTask::STATUS_OK unless runner_context["running"]
           runner_context
         end
-
-        private_class_method def self.email_cleanup(*)
-        end
       end
     end
   end

@@ -24,7 +24,10 @@ module ManageIQ
           method = runner_context["method"]
           raise ArgumentError if method.nil?
 
-          BuiltinMethods.send("#{method}_cleanup", runner_context)
+          cleanup_method = "#{method}_cleanup"
+          return unless BuiltinMethods.respond_to?(cleanup_method, true)
+
+          BuiltinMethods.send(cleanup_method, runner_context)
         end
 
         def wait(timeout: nil, events: %i[create update delete])
