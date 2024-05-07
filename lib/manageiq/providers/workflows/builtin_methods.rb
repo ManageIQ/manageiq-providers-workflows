@@ -15,17 +15,19 @@ module ManageIQ
         end
 
         def self.embedded_ansible(params = {}, _secrets = {}, _context = {})
-          repository_url, repository_branch, playbook, hosts = params.values_at("RepositoryUrl", "RepositoryBranch", "Playbook", "Hosts")
+          repository_url, repository_branch, playbook = params.values_at("RepositoryUrl", "RepositoryBranch", "Playbook")
 
-          hosts ||= %w[localhost]
+          vars = params
+                 .slice("Hosts", "ExtraVars", "BecomeEnabled", "Timeout", "Verbosity", "Credential", "CloudCredential", "NetworkCredential", "VaultCredential")
+                 .transform_keys { |k| k.underscore.to_sym }
 
           repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
-          return BuiltinRunner.error!(runner_context, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
+          return error!(runner_context, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
 
           playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook)
-          return BuiltinRunner.error!(runner_context, :cause => "Unable to find Playbook: Name: [#{playbook}] Repository: #{repository.name}") if playbook.nil?
+          return error!(runner_context, :cause => "Unable to find Playbook: Name: [#{playbook}] Repository: #{repository.name}") if playbook.nil?
 
-          job = playbook.run(:hosts => hosts)
+          job = playbook.run(vars)
 
           {"miq_task_id" => job.miq_task_id}
         end
