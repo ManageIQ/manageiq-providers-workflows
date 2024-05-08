@@ -30,13 +30,10 @@ module ManageIQ
           BuiltinMethods.send(cleanup_method, runner_context)
         end
 
-        def wait(timeout: nil, events: %i[create update delete])
-          # TODO: wait_for_task?
-        end
-
         def status!(runner_context)
           method_name = runner_context["method"]
           raise ArgumentError if method_name.nil?
+          return if runner_context["running"] == false
 
           BuiltinMethods.send("#{method_name}_status!", runner_context)
         end
