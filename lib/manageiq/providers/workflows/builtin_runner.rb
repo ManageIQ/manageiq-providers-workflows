@@ -5,12 +5,12 @@ module ManageIQ
 
       class BuiltinRunnner < Floe::Runner
         SCHEME = "builtin".freeze
+        SCHEME_PREFIX = "#{SCHEME}://".freeze
 
         def run_async!(resource, params = {}, secrets = {}, context = {})
-          scheme_prefix = "#{SCHEME}://"
-          raise ArgumentError, "Invalid resource" unless resource&.start_with?(scheme_prefix)
+          raise ArgumentError, "Invalid resource" unless resource&.start_with?(SCHEME_PREFIX)
 
-          method_name = resource.sub(scheme_prefix, "")
+          method_name = resource.sub(SCHEME_PREFIX, "")
 
           runner_context = {"method" => method_name}
 
