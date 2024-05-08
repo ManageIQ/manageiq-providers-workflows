@@ -14,9 +14,27 @@ module ManageIQ
           miq_task_status!(runner_context)
         end
 
+        def self.provision_execute(_params = {}, _secrets = {}, context = {})
+          # ensure we are in a provisioning request
+          unless context.execution["_object_type"] == "ServiceTemplateProvisionTask"
+            return BuiltinRunner.error!(runner_context, :cause => "Calling provision_execute on non-provisioning request: [#{runner_context["_object_type"]}]")
+          end
+
+          request_task_id = context.execution["_object_id"]&.to_i
+          ::MiqRequestTask.find(request_task_id)&.execute
+
+          {"miq_request_task_id" => request_task_id}
+        end
+
+        private_class_method def self.provision_execute_status!(runner_context)
+          miq_request_task_status!(runner_context)
+        end
+
+        # general methods
+
         private_class_method def self.miq_task_status!(runner_context)
           miq_task = ::MiqTask.find_by(:id => runner_context["miq_task_id"])
-          return error!(runner_context, :cause => "Unable to find MiqTask id: [#{runner_context["miq_task_id"]}]") if miq_task.nil?
+          return BuiltinRunner.error!(runner_context, :cause => "Unable to find MiqTask id: [#{runner_context["miq_task_id"]}]") if miq_task.nil?
 
           runner_context["running"] = miq_task.state != ::MiqTask::STATE_FINISHED
 
@@ -25,17 +43,29 @@ module ManageIQ
             if runner_context["success"]
               runner_context["output"] = miq_task.message
             else
-              error!(runner_context, :cause => miq_task.message)
+              BuiltinRunner.error!(runner_context, :cause => miq_task.message)
             end
           end
 
           runner_context
         end
 
-        private_class_method def self.error!(runner_context = {}, cause:, error: "States.TaskFailed")
-          runner_context.merge!(
-            "running" => false, "success" => false, "output" => {"Error" => error, "Cause" => cause}
-          )
+        private_class_method def self.miq_request_task_status!(runner_context)
+          miq_request_task = ::MiqRequestTask.find_by(:id => runner_context["miq_request_task_id"])
+
+          case miq_request_task&.statemachine_task_status
+          when nil
+            reason = "Unable to find MiqRequestTask id: [#{runner_context["miq_request_task_id"]}]"
+            BuiltinRunner.error!(runner_context, :cause => reason)
+          when "error"
+            reason = request_task.message&.sub(/^Error: /, "")
+            BuiltinRunner.error!(runner_context, :cause => reason)
+          when "retry"
+            runner_context["running"] = true
+            runner_context
+          when "ok"
+            BuiltinRunner.success!(runner_context, :output => {"Result" => "provisioned"})
+          end
         end
       end
     end
