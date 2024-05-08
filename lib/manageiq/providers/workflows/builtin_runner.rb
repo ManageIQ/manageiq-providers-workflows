@@ -13,9 +13,6 @@ module ManageIQ
           method_name = resource.sub(SCHEME_PREFIX, "")
 
           runner_context = {"method" => method_name}
-
-          # TODO: prevent calling anything except the specifics methods, e.g. you shouldn't be able to call .to_s.
-          #       Maybe make BuiltinMethods a BasicObject?
           method_result = BuiltinMethods.public_send(method_name, params, secrets, context)
           method_result.merge(runner_context)
         rescue => err
