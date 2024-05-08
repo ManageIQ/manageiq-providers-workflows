@@ -15,15 +15,18 @@ module ManageIQ
         end
 
         def self.provision_execute(_params = {}, _secrets = {}, context = {})
+          object_type, object_id = context.execution.values_at("_object_type", "_object_id")
+
           # ensure we are in a provisioning request
-          unless context.execution["_object_type"] == "ServiceTemplateProvisionTask"
-            return BuiltinRunner.error!(runner_context, :cause => "Calling provision_execute on non-provisioning request: [#{runner_context["_object_type"]}]")
-          end
+          return BuiltinRunner.error!(runner_context, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless object_type == "ServiceTemplateProvisionTask"
+          return BuiltinRunner.error!(runner_context, :cause => "Missing MiqRequestTask id") if object_id.nil?
 
-          request_task_id = context.execution["_object_id"]&.to_i
-          ::MiqRequestTask.find(request_task_id)&.execute
+          miq_request_task = ::MiqRequestTask.find_by(:id => object_id.to_i)
+          return BuiltinRunner.error!(runner_context, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]") if miq_request_task.nil?
 
-          {"miq_request_task_id" => request_task_id}
+          miq_request_task.execute
+
+          {"miq_request_task_id" => miq_request_task.id}
         end
 
         private_class_method def self.provision_execute_status!(runner_context)
