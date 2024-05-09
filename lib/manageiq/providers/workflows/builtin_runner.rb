@@ -1,9 +1,13 @@
+require_relative "builtin_result_mixin"
+
 module ManageIQ
   module Providers
     module Workflows
       require "floe"
 
       class BuiltinRunnner < Floe::Runner
+        extend BuiltinResultMixin
+
         SCHEME = "builtin".freeze
         SCHEME_PREFIX = "#{SCHEME}://".freeze
 
@@ -50,17 +54,6 @@ module ManageIQ
           runner_context["output"]
         end
 
-        def self.error!(runner_context = {}, cause:, error: "States.TaskFailed")
-          runner_context.merge!(
-            "running" => false, "success" => false, "output" => {"Error" => error, "Cause" => cause}
-          )
-        end
-
-        def self.success!(runner_context = {}, output:)
-          runner_context.merge!(
-            "running" => false, "success" => true, "output" => output
-          )
-        end
       end
     end
   end
