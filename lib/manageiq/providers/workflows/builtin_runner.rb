@@ -1,9 +1,13 @@
+require_relative "builtin_result_mixin"
+
 module ManageIQ
   module Providers
     module Workflows
       require "floe"
 
       class BuiltinRunnner < Floe::Runner
+        include BuiltinResultMixin
+
         SCHEME = "builtin".freeze
         SCHEME_PREFIX = "#{SCHEME}://".freeze
 
@@ -12,12 +16,17 @@ module ManageIQ
 
           method_name = resource.sub(SCHEME_PREFIX, "")
 
-          runner_context = {"method" => method_name}
-          method_result = BuiltinMethods.public_send(method_name, params, secrets, context)
-          method_result.merge(runner_context)
-        rescue => err
-          cleanup(runner_context)
-          error!(runner_context, :cause => err.to_s)
+          begin
+            runner_context = {"method" => method_name}
+            method_result = BuiltinMethods.public_send(method_name, params, secrets, context)
+            method_result.merge(runner_context)
+          rescue NoMethodError
+            error!(runner_context, :cause => "undefined method [#{method_name}]")
+          rescue => err
+            error!(runner_context, :cause => err.to_s)
+          ensure
+            cleanup(runner_context)
+          end
         end
 
         def cleanup(runner_context)
@@ -50,17 +59,6 @@ module ManageIQ
           runner_context["output"]
         end
 
-        def self.error!(runner_context = {}, cause:, error: "States.TaskFailed")
-          runner_context.merge!(
-            "running" => false, "success" => false, "output" => {"Error" => error, "Cause" => cause}
-          )
-        end
-
-        def self.success!(runner_context = {}, output:)
-          runner_context.merge!(
-            "running" => false, "success" => true, "output" => output
-          )
-        end
       end
     end
   end
