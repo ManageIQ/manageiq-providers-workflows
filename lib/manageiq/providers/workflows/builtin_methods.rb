@@ -65,7 +65,7 @@ module ManageIQ
             reason = "Unable to find MiqRequestTask id: [#{runner_context["miq_request_task_id"]}]"
             error!(runner_context, :cause => reason)
           when "error"
-            reason = request_task.message&.sub(/^Error: /, "")
+            reason = miq_request_task.message&.sub(/^Error: /, "")
             error!(runner_context, :cause => reason)
           when "retry"
             runner_context["running"] = true
