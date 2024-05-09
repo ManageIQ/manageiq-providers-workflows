@@ -6,7 +6,7 @@ module ManageIQ
       require "floe"
 
       class BuiltinRunnner < Floe::Runner
-        extend BuiltinResultMixin
+        include BuiltinResultMixin
 
         SCHEME = "builtin".freeze
         SCHEME_PREFIX = "#{SCHEME}://".freeze
@@ -16,12 +16,17 @@ module ManageIQ
 
           method_name = resource.sub(SCHEME_PREFIX, "")
 
-          runner_context = {"method" => method_name}
-          method_result = BuiltinMethods.public_send(method_name, params, secrets, context)
-          method_result.merge(runner_context)
-        rescue => err
-          cleanup(runner_context)
-          error!(runner_context, :cause => err.to_s)
+          begin
+            runner_context = {"method" => method_name}
+            method_result = BuiltinMethods.public_send(method_name, params, secrets, context)
+            method_result.merge(runner_context)
+          rescue NoMethodError
+            error!(runner_context, :cause => "undefined method [#{method_name}]")
+          rescue => err
+            error!(runner_context, :cause => err.to_s)
+          ensure
+            cleanup(runner_context)
+          end
         end
 
         def cleanup(runner_context)
