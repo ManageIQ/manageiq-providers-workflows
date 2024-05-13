@@ -21,6 +21,8 @@ module ManageIQ
                  .slice("Hosts", "ExtraVars", "BecomeEnabled", "Timeout", "Verbosity", "Credential", "CloudCredential", "NetworkCredential", "VaultCredential")
                  .transform_keys { |k| k.underscore.to_sym }
 
+          vars[:execution_ttl] = vars.delete(:timeout) if vars.key?(:timeout)
+
           repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
           return error!(runner_context, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
 
