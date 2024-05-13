@@ -16,11 +16,15 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
   describe ".provision_execute" do
     let(:params)  { {} }
     let(:secrets) { {} }
-    let(:context) { Floe::Workflow::Context.new({}) }
 
-    it "returns an error if _object isn't passed" do
-      runner_context = described_class.provision_execute(params, secrets, context)
-      expect(runner_context).to include("running" => false, "success" => false, "output" => {"Error" => "States.TaskFailed", "Cause" => "Calling provision_execute on non-provisioning request: []"})
+    it "returns an error if _object_type isn't passed" do
+      runner_context = described_class.provision_execute(params, secrets, Floe::Workflow::Context.new({"Execution" => {"_object_id" => nil}}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => {"Error" => "States.TaskFailed", "Cause" => "Missing MiqRequestTask type"})
+    end
+
+    it "returns an error if _object_id isn't passed" do
+      runner_context = described_class.provision_execute(params, secrets, Floe::Workflow::Context.new({"Execution" => {"_object_type" => "MiqProvision"}}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => {"Error" => "States.TaskFailed", "Cause" => "Missing MiqRequestTask id"})
     end
   end
 end
