@@ -8,7 +8,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       it "calls GenericMailer" do
         runner_context = described_class.email(params)
         expect(runner_context).to have_key("miq_task_id")
-        expect(MiqTask.find_by(:id => runner_context["miq_task_id"])).to have_attributes(:state => "Queued", :status => "Error")
+        expect(MiqTask.find_by(:id => runner_context["miq_task_id"])).to have_attributes(:state => "Finished", :status => "Error")
       end
     end
   end
