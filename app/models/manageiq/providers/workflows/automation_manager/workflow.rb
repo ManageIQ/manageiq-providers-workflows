@@ -7,12 +7,18 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
     create!(:manager => workflows_automation_manager, :name => name, :payload => JSON.pretty_generate(json), :payload_type => "json", **kwargs)
   end
 
-  def run(inputs: {}, userid: "system", zone: nil, role: "automate", object: nil)
+  def run(inputs: {}, userid: "system", zone: nil, role: "automate", object: nil, execution_context: {})
     raise _("execute is not enabled") unless Settings.prototype.ems_workflows.enabled
 
     require "floe"
-    context = Floe::Workflow::Context.new(:input => inputs)
-    context.execution["_manageiq_api_url"] = MiqRegion.my_region.remote_ws_url
+
+    execution_context = execution_context.dup
+    execution_context["_manageiq_api_url"] = MiqRegion.my_region.remote_ws_url
+    if object
+      execution_context["_object_type"] = object.class.name
+      execution_context["_object_id"]   = object.id
+    end
+    context = Floe::Workflow::Context.new({"Execution" => execution_context}, :input => inputs)
 
     miq_task = instance = nil
     transaction do

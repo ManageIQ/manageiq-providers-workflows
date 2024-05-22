@@ -195,6 +195,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
 
         expect(record.configuration_script_payloads.first).to have_attributes(
           :name         => "hello_world.asl",
+          :description  => "hello world",
           :payload      => a_string_including("\"Comment\": \"hello world\""),
           :payload_type => "json"
         )

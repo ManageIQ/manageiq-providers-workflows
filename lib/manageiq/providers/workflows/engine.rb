@@ -31,16 +31,33 @@ module ManageIQ
         end
 
         def self.seedable_classes
-          %w[ManageIQ::Providers::Workflows]
+          %w[
+            ManageIQ::Providers::Workflows
+            ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSource
+          ]
+        end
+
+        def self.floe_runner_name
+          if (runner_setting = Settings.ems.ems_workflows.runner.presence)
+            runner_setting
+          elsif MiqEnvironment::Command.is_podified?
+            "kubernetes"
+          elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
+            "podman"
+          else
+            "docker"
+          end
         end
 
         def self.set_floe_runner
           require "miq_environment"
           require "floe"
+          require "floe/container_runner"
 
           floe_runner_settings = Settings.ems.ems_workflows.runner_options
 
-          if MiqEnvironment::Command.is_podified?
+          case floe_runner_name
+          when "kubernetes"
             host = ENV.fetch("KUBERNETES_SERVICE_HOST")
             port = ENV.fetch("KUBERNETES_SERVICE_PORT")
 
@@ -52,17 +69,19 @@ module ManageIQ
               "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT", nil)
             }.merge(floe_runner_settings.kubernetes)
 
-            Floe.set_runner("docker", "kubernetes", options)
-          elsif MiqEnvironment::Command.is_appliance? || MiqEnvironment::Command.supports_command?("podman")
+            Floe::ContainerRunner.set_runner("kubernetes", options)
+          when "podman"
             options = {}
             options["root"] = Rails.root.join("data/containers/storage").to_s if Rails.env.production?
             options.merge!(floe_runner_settings.podman)
 
-            Floe.set_runner("docker", "podman", options)
-          else
+            Floe::ContainerRunner.set_runner("podman", options)
+          when "docker"
             options = floe_runner_settings.docker.to_hash
 
-            Floe.set_runner("docker", "docker", options)
+            Floe::ContainerRunner.set_runner("docker", options)
+          else
+            raise "Unknown runner: #{floe_runner_name}. expecting [kubernetes, podman, docker]"
           end
         end
       end

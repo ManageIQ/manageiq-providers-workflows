@@ -1,5 +1,6 @@
 :ems:
   :ems_workflows:
+    :runner:
     :runner_options:
       :docker:
         :network: host
