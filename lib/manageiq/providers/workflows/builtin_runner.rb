@@ -4,7 +4,7 @@ module ManageIQ
       require "floe"
 
       class BuiltinRunnner < Floe::Runner
-        SCHEME = "builtin".freeze
+        SCHEME = "manageiq".freeze
         SCHEME_PREFIX = "#{SCHEME}://".freeze
 
         class << self

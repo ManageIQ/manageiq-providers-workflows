@@ -10,7 +10,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinRunnner do
     end
 
     it "with an invalid method" do
-      result = subject.run_async!("builtin://invalid_method")
+      result = subject.run_async!("manageiq://invalid_method")
       expect(result).to include(
         "running" => false,
         "success" => false,
