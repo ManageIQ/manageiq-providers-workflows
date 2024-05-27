@@ -56,7 +56,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
         next if filename.start_with?(".") || !filename.end_with?(".asl")
 
         payload  = worktree.read_file(filename)
-        workflow = create_workflow_from_payload(filename, payload)
+        workflow = create_workflow_from_payload(filename, payload, fail_on_invalid_workflow: false)
         to_delete.delete(workflow.name)
       end
     end
@@ -68,18 +68,20 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
       workflow_paths.each do |filename|
         workflow_name = filename.relative_path_from(base_dir).to_s
         payload       = File.read(filename)
-        workflow      = create_workflow_from_payload(workflow_name, payload)
+        workflow      = create_workflow_from_payload(workflow_name, payload, fail_on_invalid_workflow: true)
 
         to_delete.delete(workflow.name)
       end
     end
   end
 
-  def create_workflow_from_payload(name, payload)
+  def create_workflow_from_payload(name, payload, fail_on_invalid_workflow:)
     floe_workflow =
       begin
         Floe::Workflow.new(payload)
       rescue Floe::InvalidWorkflowError
+        raise if fail_on_invalid_workflow
+
         nil
       end
 
