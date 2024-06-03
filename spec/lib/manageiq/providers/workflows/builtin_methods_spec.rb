@@ -5,10 +5,34 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     let(:params) { {"To" => "foo@bar.com", "From" => "baz@bar.com"} }
 
     context "with no notifier" do
-      it "calls GenericMailer" do
+      it "fails emailing" do
         runner_context = described_class.email(params)
         expect(runner_context).to have_key("miq_task_id")
         expect(MiqTask.find_by(:id => runner_context["miq_task_id"])).to have_attributes(:state => "Finished", :status => "Error")
+      end
+    end
+
+    context "with notifier" do
+      let(:params) { {"To" => "foo@bar.com", "From" => "baz@bar.com"} }
+
+      before do
+        allow(MiqRegion.my_region).to receive(:role_assigned?).with('notifier').and_return(true)
+        zone = FactoryBot.create(:zone)
+        allow(MiqServer).to receive(:my_zone).and_return(zone.name)
+      end
+
+      it "defaults from and queues message" do
+        stub_settings_merge(:smtp => {:from => "baz@system.com"})
+
+        runner_context = described_class.email({"To" => "foo@bar.com"})
+
+        expect(task_id = runner_context["miq_task_id"]).not_to be_nil
+        expect(MiqTask.find_by(:id => task_id)).to have_attributes(:state => "Queued", :status => "Ok")
+        expected_attributes = {
+          :class_name => "GenericMailer",
+          :args       => [:generic_notification, {:to => "foo@bar.com", :from => "baz@system.com"}]
+        }
+        expect(MiqQueue.find_by(:miq_task_id => task_id)).to have_attributes(expected_attributes)
       end
     end
   end
