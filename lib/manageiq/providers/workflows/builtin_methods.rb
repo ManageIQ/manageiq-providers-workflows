@@ -4,7 +4,7 @@ module ManageIQ
       class BuiltinMethods < BasicObject
         def self.email(params = {}, _secrets = {}, _context = {})
           options = params.slice("To", "From", "Subject", "Cc", "Bcc", "Body", "Attachment").transform_keys { |k| k.downcase.to_sym }
-
+          options[:from] ||= ::Settings.smtp.from
           miq_task = ::GenericMailer.deliver_task(:generic_notification, options)
 
           {"miq_task_id" => miq_task.id}
