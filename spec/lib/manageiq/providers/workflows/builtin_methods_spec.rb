@@ -37,6 +37,36 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     end
   end
 
+  describe ".embedded_ansible" do
+    let(:repo)     { FactoryBot.create(:embedded_ansible_configuration_script_source) }
+    let(:playbook) { FactoryBot.create(:embedded_playbook, :configuration_script_source => repo) }
+    before         { EvmSpecHelper.local_miq_server }
+
+    context "with a missing repository" do
+      it "returns an error that it couldn't find the repository" do
+        params = {"RepositoryUrl" => "https://github.com/missing_repo.git", "RepositoryBranch" => "feature1"}
+        expect(described_class.embedded_ansible(params))
+          .to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find Repository: URL: [https://github.com/missing_repo.git] Branch: [feature1]"))
+      end
+    end
+
+    context "with a missing playbook" do
+      let(:repo) { FactoryBot.create(:embedded_ansible_configuration_script_source) }
+
+      it "returns an error that it couldn't find the playbook" do
+        params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "Playbook" => "missing"}
+        expect(described_class.embedded_ansible(params))
+          .to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find Playbook: Name: [missing] Repository: [#{repo.name}]"))
+      end
+    end
+
+    it "calls playbook run" do
+      params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "Playbook" => playbook.name}
+      expect(described_class.embedded_ansible(params)).to include("miq_task_id" => a_kind_of(Integer))
+      expect(MiqQueue.first).to have_attributes(:class_name => "ManageIQ::Providers::AnsiblePlaybookWorkflow", :method_name => "signal")
+    end
+  end
+
   describe ".provision_execute" do
     let(:params)  { {} }
     let(:secrets) { {} }

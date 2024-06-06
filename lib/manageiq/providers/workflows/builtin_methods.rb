@@ -15,7 +15,7 @@ module ManageIQ
         end
 
         def self.embedded_ansible(params = {}, _secrets = {}, _context = {})
-          repository_url, repository_branch, playbook = params.values_at("RepositoryUrl", "RepositoryBranch", "Playbook")
+          repository_url, repository_branch, playbook_name = params.values_at("RepositoryUrl", "RepositoryBranch", "Playbook")
 
           vars = params
                  .slice("Hosts", "ExtraVars", "BecomeEnabled", "Timeout", "Verbosity", "Credential", "CloudCredential", "NetworkCredential", "VaultCredential")
@@ -24,10 +24,10 @@ module ManageIQ
           vars[:execution_ttl] = vars.delete(:timeout) if vars.key?(:timeout)
 
           repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
-          return error!(runner_context, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
+          return BuiltinRunnner.error!({}, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
 
-          playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook)
-          return error!(runner_context, :cause => "Unable to find Playbook: Name: [#{playbook}] Repository: #{repository.name}") if playbook.nil?
+          playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook_name)
+          return BuiltinRunnner.error!({}, :cause => "Unable to find Playbook: Name: [#{playbook_name}] Repository: [#{repository.name}]") if playbook.nil?
 
           job = playbook.run(vars)
 
