@@ -54,16 +54,26 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       let(:repo) { FactoryBot.create(:embedded_ansible_configuration_script_source) }
 
       it "returns an error that it couldn't find the playbook" do
-        params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "Playbook" => "missing"}
+        params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => "missing"}
         expect(described_class.embedded_ansible(params))
           .to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find Playbook: Name: [missing] Repository: [#{repo.name}]"))
       end
     end
 
-    it "calls playbook run" do
-      params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "Playbook" => playbook.name}
-      expect(described_class.embedded_ansible(params)).to include("miq_task_id" => a_kind_of(Integer))
-      expect(MiqQueue.first).to have_attributes(:class_name => "ManageIQ::Providers::AnsiblePlaybookWorkflow", :method_name => "signal")
+    context "with a PlaybookId" do
+      it "calls playbook run" do
+        params = {"PlaybookId" => playbook.id}
+        expect(described_class.embedded_ansible(params)).to include("miq_task_id" => a_kind_of(Integer))
+        expect(MiqQueue.first).to have_attributes(:class_name => "ManageIQ::Providers::AnsiblePlaybookWorkflow", :method_name => "signal")
+      end
+    end
+
+    context "with a Repository/PlaybookName" do
+      it "calls playbook run" do
+        params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => playbook.name}
+        expect(described_class.embedded_ansible(params)).to include("miq_task_id" => a_kind_of(Integer))
+        expect(MiqQueue.first).to have_attributes(:class_name => "ManageIQ::Providers::AnsiblePlaybookWorkflow", :method_name => "signal")
+      end
     end
   end
 

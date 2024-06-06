@@ -15,7 +15,7 @@ module ManageIQ
         end
 
         def self.embedded_ansible(params = {}, _secrets = {}, _context = {})
-          repository_url, repository_branch, playbook_name = params.values_at("RepositoryUrl", "RepositoryBranch", "Playbook")
+          repository_url, repository_branch, playbook_name, playbook_id = params.values_at("RepositoryUrl", "RepositoryBranch", "PlaybookName", "PlaybookId")
 
           vars = params
                  .slice("Hosts", "ExtraVars", "BecomeEnabled", "Timeout", "Verbosity", "Credential", "CloudCredential", "NetworkCredential", "VaultCredential")
@@ -23,11 +23,16 @@ module ManageIQ
 
           vars[:execution_ttl] = vars.delete(:timeout) if vars.key?(:timeout)
 
-          repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
-          return BuiltinRunnner.error!({}, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
+          if playbook_id
+            playbook = ::ConfigurationScriptPayload.find_by(:id => playbook_id)
+            return BuiltinRunnner.error!({}, :cause => "Unable to find Playbook: Id: [#{playbook_id}] Repository: [#{repository.name}]") if playbook.nil?
+          else
+            repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
+            return BuiltinRunnner.error!({}, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
 
-          playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook_name)
-          return BuiltinRunnner.error!({}, :cause => "Unable to find Playbook: Name: [#{playbook_name}] Repository: [#{repository.name}]") if playbook.nil?
+            playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook_name)
+            return BuiltinRunnner.error!({}, :cause => "Unable to find Playbook: Name: [#{playbook_name}] Repository: [#{repository.name}]") if playbook.nil?
+          end
 
           job = playbook.run(vars)
 
