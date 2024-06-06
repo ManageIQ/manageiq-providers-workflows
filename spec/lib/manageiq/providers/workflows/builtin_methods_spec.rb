@@ -55,8 +55,6 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     end
 
     context "with a missing playbook" do
-      let(:repo) { FactoryBot.create(:embedded_ansible_configuration_script_source) }
-
       it "returns an error that it couldn't find the playbook" do
         params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => "missing"}
         expect(described_class.embedded_ansible(params))
@@ -64,6 +62,20 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
             "running" => false,
             "success" => false,
             "output"  => failed_task_status("Unable to find Playbook: Name: [missing] Repository: [#{repo.name}]")
+          )
+      end
+    end
+
+    context "with a non-embedded_ansible configuration_script_payload" do
+      let(:workflow) { FactoryBot.create(:workflows_automation_workflow, :configuration_script_source => repo) }
+
+      it "return an error" do
+        params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => workflow.name}
+        expect(described_class.embedded_ansible(params))
+          .to include(
+            "running" => false,
+            "success" => false,
+            "output"  => failed_task_status("Invalid playbook: ID: [#{workflow.id}] Type: [#{workflow.type}]")
           )
       end
     end

@@ -23,7 +23,7 @@ module ManageIQ
 
           vars[:execution_ttl] = vars.delete(:timeout) if vars.key?(:timeout)
           %i[credential_id cloud_credential_id network_credential_id vault_credential_id].each do |key|
-            new_key = key.to_s.gsub(/_id$/, '').to_sym
+            new_key = key.to_s.chomp("_id").to_sym
             vars[new_key] = vars.delete(key) if vars.key?(key)
           end
 
@@ -36,6 +36,10 @@ module ManageIQ
 
             playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook_name)
             return BuiltinRunnner.error!({}, :cause => "Unable to find Playbook: Name: [#{playbook_name}] Repository: [#{repository.name}]") if playbook.nil?
+          end
+
+          unless playbook.class <= ::ManageIQ::Providers::EmbeddedAnsible::AutomationManager::Playbook
+            return BuiltinRunnner.error!({}, :cause => "Invalid playbook: ID: [#{playbook.id}] Type: [#{playbook.type}]")
           end
 
           job = playbook.run(vars)
