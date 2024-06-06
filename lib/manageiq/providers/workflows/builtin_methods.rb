@@ -14,6 +14,39 @@ module ManageIQ
           miq_task_status!(runner_context)
         end
 
+        def self.embedded_ansible(params = {}, _secrets = {}, _context = {})
+          repository_url, repository_branch, playbook_name, playbook_id = params.values_at("RepositoryUrl", "RepositoryBranch", "PlaybookName", "PlaybookId")
+
+          vars = params
+                 .slice("Hosts", "ExtraVars", "BecomeEnabled", "Timeout", "Verbosity", "CredentialId", "CloudCredentialId", "NetworkCredentialId", "VaultCredentialId")
+                 .transform_keys { |k| k.underscore.to_sym }
+
+          vars[:execution_ttl] = vars.delete(:timeout) if vars.key?(:timeout)
+          %i[credential_id cloud_credential_id network_credential_id vault_credential_id].each do |key|
+            new_key = key.to_s.gsub(/_id$/, '').to_sym
+            vars[new_key] = vars.delete(key) if vars.key?(key)
+          end
+
+          if playbook_id
+            playbook = ::ConfigurationScriptPayload.find_by(:id => playbook_id)
+            return BuiltinRunnner.error!({}, :cause => "Unable to find Playbook: Id: [#{playbook_id}] Repository: [#{repository.name}]") if playbook.nil?
+          else
+            repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
+            return BuiltinRunnner.error!({}, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
+
+            playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook_name)
+            return BuiltinRunnner.error!({}, :cause => "Unable to find Playbook: Name: [#{playbook_name}] Repository: [#{repository.name}]") if playbook.nil?
+          end
+
+          job = playbook.run(vars)
+
+          {"miq_task_id" => job.miq_task_id}
+        end
+
+        private_class_method def self.embedded_ansible_status!(runner_context)
+          miq_task_status!(runner_context)
+        end
+
         def self.provision_execute(_params = {}, _secrets = {}, context = {})
           object_type, object_id = context.execution.values_at("_object_type", "_object_id")
           return BuiltinRunnner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
