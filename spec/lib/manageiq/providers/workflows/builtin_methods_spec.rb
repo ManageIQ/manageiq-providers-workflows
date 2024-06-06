@@ -46,7 +46,11 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       it "returns an error that it couldn't find the repository" do
         params = {"RepositoryUrl" => "https://github.com/missing_repo.git", "RepositoryBranch" => "feature1"}
         expect(described_class.embedded_ansible(params))
-          .to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find Repository: URL: [https://github.com/missing_repo.git] Branch: [feature1]"))
+          .to include(
+            "running" => false,
+            "success" => false,
+            "output"  => failed_task_status("Unable to find Repository: URL: [https://github.com/missing_repo.git] Branch: [feature1]")
+          )
       end
     end
 
@@ -56,7 +60,11 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       it "returns an error that it couldn't find the playbook" do
         params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => "missing"}
         expect(described_class.embedded_ansible(params))
-          .to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find Playbook: Name: [missing] Repository: [#{repo.name}]"))
+          .to include(
+            "running" => false,
+            "success" => false,
+            "output"  => failed_task_status("Unable to find Playbook: Name: [missing] Repository: [#{repo.name}]")
+          )
       end
     end
 
@@ -74,6 +82,45 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
         expect(described_class.embedded_ansible(params)).to include("miq_task_id" => a_kind_of(Integer))
         expect(MiqQueue.first).to have_attributes(:class_name => "ManageIQ::Providers::AnsiblePlaybookWorkflow", :method_name => "signal")
       end
+    end
+
+    it "replaces Timeout with execution_ttl" do
+      runner_context = described_class.embedded_ansible("PlaybookId" => playbook.id, "Timeout" => 30)
+
+      miq_task_id = runner_context["miq_task_id"]
+      job         = ManageIQ::Providers::AnsiblePlaybookWorkflow.find_by(:miq_task_id => miq_task_id)
+
+      # EmbeddedAnsible Playbook replaces execution_ttl with timeout when it creates
+      # the job, so if we see :timeout in the Job.options we succeeded
+      expect(job).to have_attributes(
+        :options => hash_including(
+          :timeout => 30.minutes
+        )
+      )
+    end
+
+    it "passes credential ids" do
+      credential         = FactoryBot.create(:embedded_ansible_credential)
+      cloud_credential   = FactoryBot.create(:embedded_ansible_amazon_credential)
+      network_credential = FactoryBot.create(:embedded_ansible_network_credential)
+      vault_credential   = FactoryBot.create(:embedded_ansible_vault_credential)
+
+      runner_context = described_class.embedded_ansible(
+        "PlaybookId"          => playbook.id,
+        "CredentialId"        => credential.id,
+        "CloudCredentialId"   => cloud_credential.id,
+        "NetworkCredentialId" => network_credential.id,
+        "VaultCredentialId"   => vault_credential.id
+      )
+
+      miq_task_id = runner_context["miq_task_id"]
+      job         = ManageIQ::Providers::AnsiblePlaybookWorkflow.find_by(:miq_task_id => miq_task_id)
+
+      expect(job).to have_attributes(
+        :options => hash_including(
+          :credentials => [credential.id, cloud_credential.id, network_credential.id, vault_credential.id]
+        )
+      )
     end
   end
 

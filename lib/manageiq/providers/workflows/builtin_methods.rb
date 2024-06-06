@@ -18,10 +18,14 @@ module ManageIQ
           repository_url, repository_branch, playbook_name, playbook_id = params.values_at("RepositoryUrl", "RepositoryBranch", "PlaybookName", "PlaybookId")
 
           vars = params
-                 .slice("Hosts", "ExtraVars", "BecomeEnabled", "Timeout", "Verbosity", "Credential", "CloudCredential", "NetworkCredential", "VaultCredential")
+                 .slice("Hosts", "ExtraVars", "BecomeEnabled", "Timeout", "Verbosity", "CredentialId", "CloudCredentialId", "NetworkCredentialId", "VaultCredentialId")
                  .transform_keys { |k| k.underscore.to_sym }
 
           vars[:execution_ttl] = vars.delete(:timeout) if vars.key?(:timeout)
+          %i[credential_id cloud_credential_id network_credential_id vault_credential_id].each do |key|
+            new_key = key.to_s.gsub(/_id$/, '').to_sym
+            vars[new_key] = vars.delete(key) if vars.key?(key)
+          end
 
           if playbook_id
             playbook = ::ConfigurationScriptPayload.find_by(:id => playbook_id)
