@@ -11,7 +11,7 @@ module ManageIQ
           require "floe"
           require "concurrent/hash"
 
-          @workflows              = Concurrent::Array.new
+          @workflows              = Concurrent::Hash.new
           @event_queue            = Queue.new
           @workflow_runner_thread = nil
           @docker_wait_thread     = nil
@@ -31,13 +31,12 @@ module ManageIQ
         end
 
         def add_workflow(wf)
-          workflows << wf
+          workflows[wf.id] = wf.floe_workflow
           event_queue.push(nil)
-          wf
         end
 
         def delete_workflow(wf)
-          workflows.delete(wf)
+          workflows.delete(wf.id)
         end
 
         private
@@ -46,20 +45,21 @@ module ManageIQ
 
         def workflow_runner
           loop do
-            ready = workflows.select { |wf| wf.floe_workflow.step_nonblock_ready? }
+            ready = workflows.select { |_id, wf| wf.step_nonblock_ready? }
             $workflows_log.info("Got [#{ready.count}] ready workflows") if ready.count > 0
 
-            ready.each do |wf|
-              wf.floe_workflow.run_nonblock
+            ready.each do |id, wf|
+              wf.run_nonblock
+              ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance.find(id).update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output)
             end
 
-            finished_workflows = workflows.select(&:end?)
-            finished_workflows.each do |wf|
+            finished_workflows = workflows.select { |_id, wf| wf.end? }
+            finished_workflows.each do |_id, wf|
               $workflows_log.info("Workflow [#{wf.context.dig("Execution", "Id")}] finished, output: [#{wf.output}]")
               workflows.delete(wf)
             end
 
-            wait_until        = workflows.map(&:wait_until).compact.min
+            wait_until        = workflows.map { |_id, wf| wf.wait_until }.compact.min
             sleep_duration    = wait_until - Time.now.utc if wait_until
             wait_until_thread = Thread.new { sleep sleep_duration; event_queue.push(nil) } if sleep_duration && sleep_duration > 0
 
@@ -67,7 +67,7 @@ module ManageIQ
             stop_thread(wait_until_thread)
             next if event.nil?
 
-            workflows.each do |wf|
+            workflows.each do |_id, wf|
               wf_container_ref = wf.context.state.dig("RunnerContext", "container_ref")
               next if wf_container_ref != runner_context["container_ref"]
 
