@@ -49,13 +49,15 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
   end
 
   def run(args = {})
-    zone, role, object_type, object_id = args.values_at(:zone, :role, :object_type, :object_id)
+    queue_args = args.slice(:zone, :role, :object_type, :object_id)
+    zone, role, object_type, object_id = queue_args.values_at(:zone, :role, :object_type, :object_id)
+
+    ManageIQ::Providers::Workflows::Runner.runner.add_workflow(self, queue_args)
 
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
 
-    creds = resolved_credentials
-    wf = Floe::Workflow.new(payload, context, creds)
+    wf = Floe::Workflow.new(payload, context, resolved_credentials)
     wf.run_nonblock
     update_credentials!(wf.credentials)
 
@@ -76,7 +78,12 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
       object.after_ae_delivery(ae_result)
     end
 
-    run_queue(:zone => zone, :role => role, :object => object, :deliver_on => 10.seconds.from_now.utc, :server_guid => MiqServer.my_server.guid) unless wf.end?
+    if wf.end?
+      ManageIQ::Providers::Workflows::Runner.runner.delete_workflow(self)
+    else
+      deliver_on = wf.wait_until || 1.minute.from_now.utc
+      run_queue(:zone => zone, :role => role, :object => object, :deliver_on => deliver_on, :server_guid => MiqServer.my_server.guid)
+    end
   end
 
   private
