@@ -1,7 +1,5 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
   def run_queue(zone: nil, role: "automate", object: nil, deliver_on: nil, server_guid: nil)
-    raise _("run_queue is not enabled") unless Settings.prototype.ems_workflows.enabled
-
     args = {:zone => zone, :role => role}
     if object
       args[:object_type] = object.class.name
@@ -51,8 +49,6 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
   end
 
   def run(args = {})
-    raise _("run is not enabled") unless Settings.prototype.ems_workflows.enabled
-
     zone, role, object_type, object_id = args.values_at(:zone, :role, :object_type, :object_id)
 
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id

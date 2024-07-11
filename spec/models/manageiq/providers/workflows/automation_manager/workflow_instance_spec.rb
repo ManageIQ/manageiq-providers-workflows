@@ -21,8 +21,6 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
     }
   end
 
-  before { stub_settings_merge(:prototype => {:ems_workflows => {:enabled => true}}) }
-
   describe "#run_queue" do
     it "queues WorkflowInstance#run" do
       workflow_instance.run_queue
