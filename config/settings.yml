@@ -33,5 +33,5 @@
         :ems_refresh_worker_workflows: {}
 :prototype:
   :ems_workflows:
-    :seed_builtin_workflows: false
+    :seed_builtin_workflows: true
     :enabled: true
