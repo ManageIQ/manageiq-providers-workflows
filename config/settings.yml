@@ -31,7 +31,3 @@
         :ems_metrics_collector_worker_workflows: {}
       :ems_refresh_worker:
         :ems_refresh_worker_workflows: {}
-:prototype:
-  :ems_workflows:
-    :seed_builtin_workflows: true
-    :enabled: true
