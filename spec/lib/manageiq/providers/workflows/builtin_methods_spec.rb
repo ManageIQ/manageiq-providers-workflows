@@ -179,7 +179,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
   def create_floe_context(object = nil, execution: nil, input: {})
     execution ||= {"_object_id" => object&.id, "_object_type" => object&.class}.compact
 
-    Floe::Workflow::Context.new({"Execution" => execution}, :input => input).tap { |ctx| ctx.state["Input"] = input }
+    Floe::Workflow::Context.new({"Execution" => execution}, :input => input.to_json).tap { |ctx| ctx.state["Input"] = input }
   end
 
   def failed_task_status(cause = nil, error: "States.TaskFailed")

@@ -16,7 +16,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
       execution_context["_object_type"] = object.class.name
       execution_context["_object_id"]   = object.id
     end
-    context = Floe::Workflow::Context.new({"Execution" => execution_context}, :input => inputs)
+    context = Floe::Workflow::Context.new({"Execution" => execution_context}, :input => inputs.to_json)
 
     miq_task = instance = nil
     transaction do

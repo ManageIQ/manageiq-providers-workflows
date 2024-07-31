@@ -59,7 +59,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     wf.run_nonblock
     update_credentials!(wf.credentials)
 
-    update!(:context => wf.context.to_h, :status => wf.status, :output => wf.output, :credentials => credentials)
+    output = JSON.parse(wf.output) if wf.output.present?
+    update!(:context => wf.context.to_h, :status => wf.status, :output => output, :credentials => credentials)
 
     if object.present? && object.respond_to?(:after_ae_delivery)
       ae_result =
