@@ -67,17 +67,17 @@ module ManageIQ
               "ca_cert"              => "/run/secrets/kubernetes.io/serviceaccount/ca.crt",
               "namespace"            => File.read("/run/secrets/kubernetes.io/serviceaccount/namespace"),
               "task_service_account" => ENV.fetch("AUTOMATION_JOB_SERVICE_ACCOUNT", nil)
-            }.merge(floe_runner_settings.kubernetes)
+            }.merge(floe_runner_settings.kubernetes.to_hash.stringify_keys)
 
             Floe::ContainerRunner.set_runner("kubernetes", options)
           when "podman"
             options = {}
             options["root"] = Rails.root.join("data/containers/storage").to_s if Rails.env.production?
-            options.merge!(floe_runner_settings.podman)
+            options.merge!(floe_runner_settings.podman.to_hash.stringify_keys)
 
             Floe::ContainerRunner.set_runner("podman", options)
           when "docker"
-            options = floe_runner_settings.docker.to_hash
+            options = floe_runner_settings.docker.to_hash.stringify_keys
 
             Floe::ContainerRunner.set_runner("docker", options)
           else
