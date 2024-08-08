@@ -1,4 +1,8 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
+  def floe_workflow
+    @floe_workflow ||= Floe::Workflow.new(payload, context, resolved_credentials)
+  end
+
   def run_queue(zone: nil, role: "automate", object: nil, deliver_on: nil, server_guid: nil)
     args = {:zone => zone, :role => role}
     if object
@@ -54,8 +58,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
 
-    creds = resolved_credentials
-    wf = Floe::Workflow.new(payload, context, creds)
+    wf = floe_workflow
     wf.run_nonblock
     update_credentials!(wf.credentials)
 
@@ -77,6 +80,10 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     end
 
     run_queue(:zone => zone, :role => role, :object => object, :deliver_on => 10.seconds.from_now.utc, :server_guid => MiqServer.my_server.guid) unless wf.end?
+  end
+
+  def floe_workflow
+    Floe::Workflow.new(payload, context, resolved_credentials)
   end
 
   private

@@ -40,7 +40,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
       miq_task.update!(:context_data => {:workflow_instance_id => instance.id})
     end
 
-    instance.run_queue(:zone => zone, :role => role, :object => object)
+    #instance.run_queue(:zone => zone, :role => role, :object => object)
 
     miq_task.id
   end
