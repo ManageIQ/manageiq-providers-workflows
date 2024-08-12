@@ -1,12 +1,15 @@
 RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
   require "floe"
 
+  let(:ctx) { Floe::Workflow::Context.new }
+  let(:secrets) { {} }
+
   describe ".email" do
     let(:params) { {"To" => "foo@bar.com", "From" => "baz@bar.com"} }
 
     context "with no notifier" do
       it "fails emailing" do
-        runner_context = described_class.email(params)
+        runner_context = described_class.email(params, secrets, ctx)
         expect(runner_context).to have_key("miq_task_id")
         expect(MiqTask.find_by(:id => runner_context["miq_task_id"])).to have_attributes(:state => "Finished", :status => "Error")
       end
@@ -24,7 +27,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       it "defaults from and queues message" do
         stub_settings_merge(:smtp => {:from => "baz@system.com"})
 
-        runner_context = described_class.email({"To" => "foo@bar.com"})
+        runner_context = described_class.email({"To" => "foo@bar.com"}, secrets, ctx)
 
         expect(task_id = runner_context["miq_task_id"]).not_to be_nil
         expect(MiqTask.find_by(:id => task_id)).to have_attributes(:state => "Queued", :status => "Ok")
@@ -45,7 +48,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     context "with a missing repository" do
       it "returns an error that it couldn't find the repository" do
         params = {"RepositoryUrl" => "https://github.com/missing_repo.git", "RepositoryBranch" => "feature1"}
-        expect(described_class.embedded_ansible(params))
+        expect(described_class.embedded_ansible(params, secrets, ctx))
           .to include(
             "running" => false,
             "success" => false,
@@ -57,7 +60,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     context "with a missing playbook" do
       it "returns an error that it couldn't find the playbook" do
         params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => "missing"}
-        expect(described_class.embedded_ansible(params))
+        expect(described_class.embedded_ansible(params, secrets, ctx))
           .to include(
             "running" => false,
             "success" => false,
@@ -71,7 +74,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
 
       it "return an error" do
         params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => workflow.name}
-        expect(described_class.embedded_ansible(params))
+        expect(described_class.embedded_ansible(params, secrets, ctx))
           .to include(
             "running" => false,
             "success" => false,
@@ -83,7 +86,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     context "with a PlaybookId" do
       it "calls playbook run" do
         params = {"PlaybookId" => playbook.id}
-        expect(described_class.embedded_ansible(params)).to include("miq_task_id" => a_kind_of(Integer))
+        expect(described_class.embedded_ansible(params, secrets, ctx)).to include("miq_task_id" => a_kind_of(Integer))
         expect(MiqQueue.first).to have_attributes(:class_name => "ManageIQ::Providers::AnsiblePlaybookWorkflow", :method_name => "signal")
       end
     end
@@ -91,13 +94,13 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     context "with a Repository/PlaybookName" do
       it "calls playbook run" do
         params = {"RepositoryUrl" => repo.scm_url, "RepositoryBranch" => repo.scm_branch, "PlaybookName" => playbook.name}
-        expect(described_class.embedded_ansible(params)).to include("miq_task_id" => a_kind_of(Integer))
+        expect(described_class.embedded_ansible(params, secrets, ctx)).to include("miq_task_id" => a_kind_of(Integer))
         expect(MiqQueue.first).to have_attributes(:class_name => "ManageIQ::Providers::AnsiblePlaybookWorkflow", :method_name => "signal")
       end
     end
 
     it "replaces Timeout with execution_ttl" do
-      runner_context = described_class.embedded_ansible("PlaybookId" => playbook.id, "Timeout" => 30)
+      runner_context = described_class.embedded_ansible({"PlaybookId" => playbook.id, "Timeout" => 30}, secrets, ctx)
 
       miq_task_id = runner_context["miq_task_id"]
       job         = ManageIQ::Providers::AnsiblePlaybookWorkflow.find_by(:miq_task_id => miq_task_id)
@@ -118,11 +121,13 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       vault_credential   = FactoryBot.create(:embedded_ansible_vault_credential)
 
       runner_context = described_class.embedded_ansible(
-        "PlaybookId"          => playbook.id,
-        "CredentialId"        => credential.id,
-        "CloudCredentialId"   => cloud_credential.id,
-        "NetworkCredentialId" => network_credential.id,
-        "VaultCredentialId"   => vault_credential.id
+        {
+          "PlaybookId"          => playbook.id,
+          "CredentialId"        => credential.id,
+          "CloudCredentialId"   => cloud_credential.id,
+          "NetworkCredentialId" => network_credential.id,
+          "VaultCredentialId"   => vault_credential.id
+        }, {}, ctx
       )
 
       miq_task_id = runner_context["miq_task_id"]
@@ -138,7 +143,6 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
 
   describe ".provision_execute" do
     let(:params)  { {} }
-    let(:secrets) { {} }
 
     it "requires _object_type" do
       runner_context = described_class.provision_execute(params, secrets, create_floe_context(:execution => {"_object_id" => nil}))

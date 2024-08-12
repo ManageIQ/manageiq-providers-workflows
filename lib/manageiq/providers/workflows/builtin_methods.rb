@@ -2,9 +2,10 @@ module ManageIQ
   module Providers
     module Workflows
       class BuiltinMethods < BasicObject
-        def self.email(params = {}, _secrets = {}, _context = {})
+        def self.email(params, _secrets, context)
           options = params.slice("To", "From", "Subject", "Cc", "Bcc", "Body", "Attachment").transform_keys { |k| k.downcase.to_sym }
           options[:from] ||= ::Settings.smtp.from
+          options[:to]   ||= context.execution["_requester_email"]
           miq_task = ::GenericMailer.deliver_task(:generic_notification, options)
 
           {"miq_task_id" => miq_task.id}
@@ -14,7 +15,7 @@ module ManageIQ
           miq_task_status!(runner_context)
         end
 
-        def self.embedded_ansible(params = {}, _secrets = {}, _context = {})
+        def self.embedded_ansible(params, _secrets, _context)
           repository_url, repository_branch, playbook_name, playbook_id = params.values_at("RepositoryUrl", "RepositoryBranch", "PlaybookName", "PlaybookId")
 
           vars = params
@@ -51,7 +52,7 @@ module ManageIQ
           miq_task_status!(runner_context)
         end
 
-        def self.provision_execute(_params = {}, _secrets = {}, context = {})
+        def self.provision_execute(_params, _secrets, context)
           object_type, object_id = context.execution.values_at("_object_type", "_object_id")
           return BuiltinRunnner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
           return BuiltinRunnner.error!({}, :cause => "Missing MiqRequestTask id")   if object_id.nil?
