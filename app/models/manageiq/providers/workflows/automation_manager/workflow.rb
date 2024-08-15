@@ -16,7 +16,15 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
       execution_context["_object_type"] = object.class.name
       execution_context["_object_id"]   = object.id
     end
-    context = Floe::Workflow::Context.new({"Execution" => execution_context}, :input => inputs)
+    execution_context["_requester_userid"] = userid
+    if User.current_userid == userid
+      execution_context["_requester_email"] = User.current_user.email
+    else
+      current_user = User.find_by("userid" => userid)
+      execution_context["_requester_email"] = current_user.email if current_user
+    end
+
+    context = Floe::Workflow::Context.new({"Execution" => execution_context}, :input => inputs.to_json)
 
     miq_task = instance = nil
     transaction do

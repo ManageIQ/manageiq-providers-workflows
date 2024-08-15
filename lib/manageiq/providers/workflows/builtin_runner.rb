@@ -21,7 +21,7 @@ module ManageIQ
           end
         end
 
-        def run_async!(resource, params = {}, secrets = {}, context = {})
+        def run_async!(resource, params, secrets, context)
           raise ArgumentError, "Invalid resource" unless resource&.start_with?(SCHEME_PREFIX)
 
           method_name = resource.sub(SCHEME_PREFIX, "")
