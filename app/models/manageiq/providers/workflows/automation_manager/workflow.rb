@@ -10,12 +10,18 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
   def run(inputs: {}, userid: "system", zone: nil, role: "automate", object: nil, execution_context: {})
     require "floe"
 
+    manager_ref = SecureRandom.uuid
+
     execution_context = execution_context.dup
+
+    execution_context["Id"]                = manager_ref
     execution_context["_manageiq_api_url"] = MiqRegion.my_region.remote_ws_url
+
     if object
       execution_context["_object_type"] = object.class.name
       execution_context["_object_id"]   = object.id
     end
+
     execution_context["_requester_userid"] = userid
     if User.current_userid == userid
       execution_context["_requester_email"] = User.current_user.email
@@ -35,7 +41,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
 
       instance = children.create!(
         :manager       => manager,
+        :manager_ref   => manager_ref,
         :type          => "#{manager.class}::WorkflowInstance",
+        :name          => name,
         :run_by_userid => userid,
         :miq_task      => miq_task,
         :payload       => payload,
