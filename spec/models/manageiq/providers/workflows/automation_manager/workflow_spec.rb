@@ -22,12 +22,15 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::Workflow do
 
       expect(workflow.children.count).to eq(1)
       expect(ems.configuration_scripts.count).to eq(1)
-      expect(ems.configuration_scripts.first).to have_attributes(
+
+      workflow_instance = ems.configuration_scripts.first
+      expect(workflow_instance).to have_attributes(
         :manager     => workflow.manager,
         :type        => "ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance",
+        :name        => workflow.name,
         :payload     => workflow.payload,
         :credentials => workflow.credentials,
-        :context     => {"Execution" => hash_including("Input" => inputs), "State" => {}, "StateMachine" => {}, "StateHistory" => [], "Task" => {}},
+        :context     => {"Execution" => hash_including("Id" => workflow_instance.manager_ref, "Input" => inputs), "State" => {}, "StateMachine" => {}, "StateHistory" => [], "Task" => {}},
         :output      => {},
         :status      => "pending"
       )
