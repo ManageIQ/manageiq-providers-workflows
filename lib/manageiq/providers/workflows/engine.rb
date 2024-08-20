@@ -37,6 +37,10 @@ module ManageIQ
           ]
         end
 
+        def self.automation_runners
+          [ManageIQ::Providers::Workflows::Runner]
+        end
+
         def self.floe_runner_name
           if (runner_setting = Settings.ems.ems_workflows.runner.presence)
             runner_setting
