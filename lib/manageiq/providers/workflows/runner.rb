@@ -10,13 +10,13 @@ module ManageIQ
           end
         end
 
-        attr_reader :workflows
+        attr_reader :workflow_instances
 
         def initialize
           require "floe"
           require "concurrent/hash"
 
-          @workflows          = Concurrent::Hash.new
+          @workflow_instances = Concurrent::Hash.new
           @docker_wait_thread = nil
         end
 
@@ -34,12 +34,12 @@ module ManageIQ
           $workflows_log.debug("Runner: Stopping workflows runner...Complete")
         end
 
-        def add_workflow(workflow, queue_args)
-          workflows[workflow.id] ||= [workflow, queue_args]
+        def add_workflow_instance(workflow_instance, queue_args)
+          workflow_instances[workflow_instance.manager_ref] ||= [workflow_instance, queue_args]
         end
 
-        def delete_workflow(workflow)
-          workflows.delete(workflow.id)
+        def delete_workflow_instance(workflow_instance)
+          workflow_instances.delete(workflow_instance.manager_ref)
         end
 
         private
@@ -49,15 +49,16 @@ module ManageIQ
         def docker_wait
           loop do
             docker_runner = Floe::Runner.for_resource("docker")
-            docker_runner.wait do |event, runner_context|
-              $workflows_log.info("Runner: Caught event [#{event}] for container [#{runner_context["container_ref"]}]")
+            docker_runner.wait do |event, data|
+              execution_id, runner_context = data.values_at("execution_id", "runner_context")
+              $workflows_log.info("Runner: Caught event [#{event}] for workflow [#{execution_id}] container [#{runner_context["container_ref"]}]")
 
-              workflow, queue_args = workflow_by_runner_context(runner_context)
-              next if workflow.nil?
+              workflow_instance, queue_args = workflow_instances[execution_id]
+              next if workflow_instance.nil?
 
-              $workflows_log.info("Runner: Queueing update for WorkflowInstance ID: [#{workflow.id}]")
+              $workflows_log.info("Runner: Queueing update for WorkflowInstance ID: [#{workflow_instance.id}]")
 
-              workflow.run_queue(**queue_args)
+              workflow_instance.run_queue(**queue_args)
             end
           rescue => err
             $workflows_log.warn("Error: [#{err}]")
@@ -70,15 +71,6 @@ module ManageIQ
 
           thread.kill
           thread.join(0)
-        end
-
-        def workflow_by_runner_context(runner_context)
-          workflows.detect do |_id, (workflow, _queue_args)|
-            context       = workflow.reload.context
-            container_ref = context.dig("State", "RunnerContext", "container_ref")
-
-            container_ref == runner_context["container_ref"]
-          end&.last
         end
       end
     end
