@@ -51,12 +51,12 @@ module ManageIQ
             docker_runner = Floe::Runner.for_resource("docker")
             docker_runner.wait do |event, data|
               execution_id, runner_context = data.values_at("execution_id", "runner_context")
-              $workflows_log.info("Runner: Caught event [#{event}] for workflow [#{execution_id}] container [#{runner_context["container_ref"]}]")
+              $workflows_log.debug("Runner: Caught event [#{event}] for workflow [#{execution_id}] container [#{runner_context["container_ref"]}]")
 
               workflow_instance, queue_args = workflow_instances[execution_id]
               next if workflow_instance.nil?
 
-              $workflows_log.info("Runner: Queueing update for WorkflowInstance ID: [#{workflow_instance.id}]")
+              $workflows_log.debug("Runner: Queueing update for WorkflowInstance ID: [#{workflow_instance.id}]")
 
               workflow_instance.run_queue(**queue_args)
             end
