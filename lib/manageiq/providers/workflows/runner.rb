@@ -22,7 +22,7 @@ module ManageIQ
 
         def start
           $workflows_log.debug("Runner: Starting workflows runner...")
-          self.docker_wait_thread = Thread.new { docker_wait }
+          self.docker_wait_thread = Thread.new { loop { docker_wait } }
           $workflows_log.debug("Runner: Starting workflows runner...Complete")
         end
 
@@ -47,23 +47,21 @@ module ManageIQ
         attr_accessor :docker_wait_thread
 
         def docker_wait
-          loop do
-            docker_runner = Floe::Runner.for_resource("docker")
-            docker_runner.wait do |event, data|
-              execution_id, runner_context = data.values_at("execution_id", "runner_context")
-              $workflows_log.debug("Runner: Caught event [#{event}] for workflow [#{execution_id}] container [#{runner_context["container_ref"]}]")
+          docker_runner = Floe::Runner.for_resource("docker")
+          docker_runner.wait do |event, data|
+            execution_id, runner_context = data.values_at("execution_id", "runner_context")
+            $workflows_log.debug("Runner: Caught event [#{event}] for workflow [#{execution_id}] container [#{runner_context["container_ref"]}]")
 
-              workflow_instance, queue_args = workflow_instances[execution_id]
-              next if workflow_instance.nil?
+            workflow_instance, queue_args = workflow_instances[execution_id]
+            next if workflow_instance.nil?
 
-              $workflows_log.debug("Runner: Queueing update for WorkflowInstance ID: [#{workflow_instance.id}]")
+            $workflows_log.debug("Runner: Queueing update for WorkflowInstance ID: [#{workflow_instance.id}]")
 
-              workflow_instance.run_queue(**queue_args)
-            end
-          rescue => err
-            $workflows_log.warn("Error: [#{err}]")
-            $workflows_log.log_backtrace(err)
+            workflow_instance.run_queue(**queue_args)
           end
+        rescue => err
+          $workflows_log.warn("Error: [#{err}]")
+          $workflows_log.log_backtrace(err)
         end
 
         def stop_thread(thread)
