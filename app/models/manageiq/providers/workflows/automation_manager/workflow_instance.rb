@@ -1,9 +1,12 @@
 class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScript
-  def run_queue(zone: nil, role: "automate", object: nil, deliver_on: nil, server_guid: nil)
+  def run_queue(zone: nil, role: "automate", object: nil, object_type: nil, object_id: nil, deliver_on: nil, server_guid: nil)
     args = {:zone => zone, :role => role}
     if object
       args[:object_type] = object.class.name
       args[:object_id]   = object.id
+    elsif object_type && object_id
+      args[:object_type] = object_type
+      args[:object_id]   = object_id
     end
 
     queue_opts = {
