@@ -194,11 +194,31 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
         record = build_record
 
         expect(record.configuration_script_payloads.first).to have_attributes(
-          :name         => "hello_world.asl",
-          :description  => "hello world",
-          :payload      => a_string_including("\"Comment\": \"hello world\""),
-          :payload_type => "json"
+          :name          => "hello_world.asl",
+          :description   => "hello world",
+          :payload       => a_string_including("\"Comment\": \"hello world\""),
+          :payload_type  => "json",
+          :payload_valid => true,
+          :payload_error => nil
         )
+      end
+
+      context "with workflows with invalid json" do
+        let(:repo_dir_structure) { %w[invalid_json.asl] }
+
+        it "skips the invalid workflow file" do
+          record = build_record
+          expect(record.configuration_script_payloads).to be_empty
+        end
+      end
+
+      context "with workflows with missing states" do
+        let(:repo_dir_structure) { %w[missing_states.asl] }
+
+        it "skips the invalid workflow file" do
+          record = build_record
+          expect(record.configuration_script_payloads).to be_empty
+        end
       end
 
       context "with a nested dir" do

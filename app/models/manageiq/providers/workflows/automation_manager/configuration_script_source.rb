@@ -55,7 +55,8 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
 
         payload  = worktree.read_file(filename)
         workflow = create_workflow_from_payload(filename, payload, fail_on_invalid_workflow: false)
-        to_delete.delete(workflow.name)
+
+        to_delete.delete(workflow.name) if workflow
       end
     end
   end
@@ -68,20 +69,23 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
         payload       = File.read(filename)
         workflow      = create_workflow_from_payload(workflow_name, payload, fail_on_invalid_workflow: true)
 
-        to_delete.delete(workflow.name)
+        to_delete.delete(workflow.name) if workflow
       end
     end
   end
 
   def create_workflow_from_payload(name, payload, fail_on_invalid_workflow:)
-    floe_workflow =
+    floe_workflow, payload_error =
       begin
         Floe::Workflow.new(payload)
-      rescue Floe::InvalidWorkflowError
+      rescue Floe::InvalidWorkflowError, NotImplementedError => err
+        _log.warn("Invalid ASL file [#{name}]: #{err}")
         raise if fail_on_invalid_workflow
 
-        nil
+        [nil, err.message]
       end
+
+    return if payload_error
 
     description = floe_workflow&.comment
 
