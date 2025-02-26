@@ -1,6 +1,6 @@
 # ManageIQ::Providers::Workflows
 
-[![CI](https://github.com/ManageIQ/manageiq-providers-workflows/actions/workflows/ci.yaml/badge.svg)](https://github.com/ManageIQ/manageiq-providers-workflows/actions/workflows/ci.yaml)
+[![CI](https://github.com/ManageIQ/manageiq-providers-workflows/actions/workflows/ci.yaml/badge.svg?branch=spassky)](https://github.com/ManageIQ/manageiq-providers-workflows/actions/workflows/ci.yaml)
 [![Code Climate](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows.svg)](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows)
 [![Test Coverage](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows/badges/coverage.svg)](https://codeclimate.com/github/ManageIQ/manageiq-providers-workflows/coverage)
 [![Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ManageIQ/manageiq-providers-workflows?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
