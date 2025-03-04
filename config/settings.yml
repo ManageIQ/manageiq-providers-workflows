@@ -1,6 +1,5 @@
 :ems:
   :ems_workflows:
-    :blacklisted_event_names: []
     :event_handling:
       :event_groups:
     :runner_options:
