@@ -60,7 +60,11 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
 
-    wf = Floe::Workflow.new(payload, context, resolved_credentials)
+    log_target_id = object.miq_request_id if object.respond_to?(:miq_request_id)
+    request_logger = log_target ? ManageIQ::Providers::Workflows::AutomationManager::RequestLogger.new(log_target_id, logger: Floe.logger) : Floe.logger
+    context_obj = Floe::Workflow::Context.new(context, logger: request_logger)
+
+    wf = Floe::Workflow.new(payload, context_obj, resolved_credentials)
     wf.run_nonblock
     update_credentials!(wf.credentials)
 
