@@ -60,7 +60,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
 
-    wf = Floe::Workflow.new(payload, context, resolved_credentials)
+    context_obj = Floe::Workflow::Context.new(context, :logger => create_logger(object))
+
+    wf = Floe::Workflow.new(payload, context_obj, resolved_credentials)
     wf.run_nonblock
     update_credentials!(wf.credentials)
 
@@ -131,5 +133,10 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     raise ActiveRecord::RecordNotFound, "Couldn't find Authentication" if authentication.nil?
 
     authentication.send(credential_field)
+  end
+
+  def create_logger(object)
+    log_target_id = object.miq_request_id if object.respond_to?(:miq_request_id)
+    log_target_id ? Floe.logger.wrap(Vmdb::Loggers::RequestLogger.new(:resource_id => log_target_id)) : Floe.logger
   end
 end
