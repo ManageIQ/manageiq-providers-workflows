@@ -59,7 +59,7 @@ module ManageIQ
 
           miq_request_task = ::MiqRequestTask.find_by(:id => object_id.to_i)
           return BuiltinRunnner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]")                        if miq_request_task.nil?
-          return BuiltinRunnner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvision
+          return BuiltinRunnner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvisionTask
 
           new_options = context.input.symbolize_keys.slice(*miq_request_task.options.keys)
           miq_request_task.options_will_change!
@@ -72,6 +72,78 @@ module ManageIQ
 
         private_class_method def self.provision_execute_status!(runner_context)
           miq_request_task_status!(runner_context)
+        end
+
+        def self.embedded_terraform(params, _secrets, context)
+          object_type, object_id = context.execution.values_at("_object_type", "_object_id")
+          return BuiltinRunnner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
+          return BuiltinRunnner.error!({}, :cause => "Missing MiqRequestTask id")   if object_id.nil?
+
+          miq_request_task = ::MiqRequestTask.find_by(:id => object_id.to_i)
+          return BuiltinRunnner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]") if miq_request_task.nil?
+
+          action = "Provision"
+          stage = params["Stage"]&.downcase || params["Action"]&.downcase # TODO: remove Action (old template)
+          raise "bad action #{action}" unless action.in?(%w(Provision Retirement Reconfigure))
+          raise "bad stage #{stage}" unless stage.in?(%w(preprocess execute refresh postprocess))
+
+          service = miq_request_task.destination # $evm.root["service"]
+
+          miq_request_task.update(:message => "#{stage} Started")
+
+          # new interface: execute_async will return a task_id so the wait_for_task is done externally
+          alternative_method = "#{stage}_async".to_sym
+          if service.respond_to?(alternative_method)
+            # the task that is kicking off the service. so we'll need to wait on the task before the followup checks
+            task_id = service.public_send(alternative_method, action)
+          else
+            service.public_send(stage.to_sym, action)
+          end
+
+          {"miq_request_task_id" => miq_request_task.id, "action" => action, "stage" => stage, "miq_task_id" => task_id}
+        end
+
+        def self.embedded_terraform_status!(runner_context)
+          stage = runner_context["stage"]
+          miq_request_task = ::MiqRequestTask.find_by(:id => runner_context["miq_request_task_id"])
+          return BuiltinRunnner.error!(runner_context, :cause => "Unable to find MiqRequestTask id: [#{runner_context["miq_request_task_id"]}]") if miq_request_task.nil?
+
+          # we're still running if we are waiting on a MiqTask,
+          ready, runner_context = wait_for_task(runner_context)
+          return runner_context if !ready
+
+          done, message = run_check(stage, miq_request)
+
+          if !done
+            running!(runner_context)
+          elsif message.blank?
+            success_message = "#{stage} Completed"
+            miq_request_task.update(:message => success_message)
+            BuiltinRunnner.success!(runner_context, :output => {"Result" => success_message})
+          else
+            # this may be confusing for developers since the error came from the check and not the stage message
+            error_message = "#{stage} Failed with error #{message}"
+            miq_request_task.update(:message => error_message)
+            BuiltinRunnner.error!(runner_context, :cause => error_message)
+          end
+        end
+
+        # @return [Boolean, String] whether done, and error message
+        private_class_method def self.run_check(stage, miq_request)
+          # we want to circle back for these:
+          stage_check = case stage
+          when "execute" then "check_completed"
+          when "refresh" then "check_refreshed"
+          else nil
+          end
+
+          # if no callback check is required, then we're done
+          if stage_check
+            service = miq_request_task.destination # $evm.root["service"]
+            service.public_send(stage_check.to_sym, runner_context["action"])
+          else
+            [true, nil]
+          end
         end
 
         # general methods
@@ -105,11 +177,42 @@ module ManageIQ
             reason = miq_request_task.message&.sub(/^Error: /, "")
             BuiltinRunnner.error!(runner_context, :cause => reason)
           when "retry"
-            runner_context["running"] = true
-            runner_context
+            running!(runner_context)
           when "ok"
             BuiltinRunnner.success!(runner_context, :output => {"Result" => "provisioned"})
           end
+        end
+
+        # This code is similar to MiqTask.wait_for_taskid
+        # Logic is here if there is an error while waiting for the MiqTask to complete
+        #
+        # @param [Hash] runner_context The floe runner context for this task - this is modified
+        # @returns [Boolean] true if we are still waiting / there was an error, false if we want to continue
+        private_class_method def self.wait_for_task(runner_context)
+          # if we are not waiting on an MiqTask, continue with the rest of the State
+          task_id = runner_context["miq_task_id"]
+          task = ::MiqTask.find(task_id) if task_id
+
+          # if we are not waiting on an MiqTask, continue with the rest of the State
+          if task.nil?
+            [false, runner_context]
+          # if the MiqTask isn't complete, mark it as still running
+          elsif task.state != ::MiqTask::STATE_FINISHED
+            [true, running!(runner_context)]
+          # if the MiqTask failed, display an error
+          elsif !task.status_ok?
+            [true, BuiltinRunnner.error!(runner_context, :cause => "Error in #{stage}. #{task.message}")]
+          # else the MiqTask succeeded, mark not running anymore and continue with the rest of the State
+          else
+            runner_context.delete("miq_task_id")
+            [false, runner_context]
+          end
+        end
+
+        # TODO: do we want to put in wait/ttl and stuff?
+        private_class_method def self.running!(runner_context)
+          runner_context["running"] = true
+          runner_context
         end
       end
     end
