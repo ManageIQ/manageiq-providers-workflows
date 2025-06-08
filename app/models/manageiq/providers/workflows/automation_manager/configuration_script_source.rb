@@ -85,18 +85,18 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
         [nil, err.message]
       end
 
-    return if payload_error
-
     description = floe_workflow&.comment
 
     configuration_script_payloads.find_or_initialize_by(:name => name).tap do |wf|
       wf.update!(
-        :name         => name,
-        :description  => description,
-        :manager_id   => manager_id,
-        :type         => self.class.module_parent::Workflow.name,
-        :payload      => payload,
-        :payload_type => "json"
+        :name          => name,
+        :description   => description,
+        :manager_id    => manager_id,
+        :type          => self.class.module_parent::Workflow.name,
+        :payload       => payload,
+        :payload_type  => "json",
+        :payload_valid => !!floe_workflow,
+        :payload_error => payload_error
       )
     end
   end
