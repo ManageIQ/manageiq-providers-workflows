@@ -137,6 +137,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
 
   def create_logger(object)
     log_target_id = object.miq_request_id if object.respond_to?(:miq_request_id)
-    log_target_id ? Floe.logger.wrap(Vmdb::Loggers::RequestLogger.new(:resource_id => log_target_id)) : Floe.logger
+    return Floe.logger if log_target_id.nil?
+
+    request_logger = Vmdb::Loggers::RequestLogger.new(:resource_id => log_target_id)
+    ManageIQ::Loggers::Base.wrap(Floe.logger, request_logger)
   end
 end
