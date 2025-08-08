@@ -2,6 +2,35 @@ module ManageIQ
   module Providers
     module Workflows
       class BuiltinMethods < BasicObject
+        def self.http(params, _secrets, context)
+          method, url, headers, params, body = params.values_at("Method", "Url", "Headers", "Params", "Body")
+
+          return BuiltinRunnner.error!({}, :cause => "Missing Parameter: Url")    if url.nil?
+          return BuiltinRunnner.error!({}, :cause => "Missing Parameter: Method") if method.nil?
+          return BuiltinRunnner.error!({}, :cause => "Invalid Parameter: Method: [#{method}], must be GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS, or TRACE") unless %w[GET POST PUT DELETE HEAD PATCH OPTIONS TRACE].include?(method)
+
+          connection_options = {
+            :request => nil,
+            :proxy   => nil,
+            :ssl     => nil,
+            :url     => url,
+            :params  => params,
+            :headers => headers,
+          }
+
+          require "faraday"
+          connection = ::Faraday.new(connection_options)
+
+          response = connection.send(method.downcase) do |request|
+            request.body = body if body
+          end
+
+          BuiltinRunnner.success!({}, :output => {"Status" => response.status, "Body" => response.body, "Headers" => response.headers})
+        end
+
+        private_class_method def self.rest_status!(runner_context)
+        end
+
         def self.email(params, _secrets, context)
           options = params.slice("To", "From", "Subject", "Cc", "Bcc", "Body", "Attachment").transform_keys { |k| k.downcase.to_sym }
           options[:from] ||= ::Settings.smtp.from
