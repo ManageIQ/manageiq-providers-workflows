@@ -2,6 +2,51 @@ module ManageIQ
   module Providers
     module Workflows
       class BuiltinMethods < BasicObject
+        def self.http(params, _secrets, context)
+          error = http_verify_params(params)
+          return BuiltinRunnner.error!({}, :cause => error) if error
+
+          method, url, headers, query, body, ssl, proxy, options =
+            params.values_at("Method", "Url", "Headers", "QueryParameters", "Body", "Ssl", "Proxy", "Options")
+
+          ssl&.transform_keys!(&:underscore)
+          proxy&.transform_keys!(&:underscore)
+          options&.transform_keys!(&:underscore)
+          request = options&.slice("timeout", "read_timeout", "open_timeout", "write_timeout")
+
+          connection_options = {
+            :request => request,
+            :proxy   => proxy,
+            :ssl     => ssl,
+            :url     => url,
+            :params  => query,
+            :headers => headers,
+          }
+
+          require "faraday"
+          connection = ::Faraday.new(connection_options)
+
+          response = connection.send(method.downcase) do |request|
+            request.body = body if body
+          end
+
+          output = {"Status" => response.status, "Body" => response.body, "Headers" => response.headers}
+
+          BuiltinRunnner.success!({}, :output => output)
+        end
+
+        private_class_method def self.http_verify_params(params)
+          return "Missing Parameter: Url"    if params["Url"].nil?
+          return "Missing Parameter: Method" if params["Method"].nil?
+          return "Invalid Parameter: Method: [#{params["Method"]}], must be GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS, or TRACE" unless %w[GET POST PUT DELETE HEAD PATCH OPTIONS TRACE].include?(params["Method"])
+
+          nil
+        end
+
+        private_class_method def self.http_status!(runner_context)
+          runner_context
+        end
+
         def self.email(params, _secrets, context)
           options = params.slice("To", "From", "Subject", "Cc", "Bcc", "Body", "Attachment").transform_keys { |k| k.downcase.to_sym }
           options[:from] ||= ::Settings.smtp.from
