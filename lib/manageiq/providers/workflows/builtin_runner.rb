@@ -3,7 +3,7 @@ module ManageIQ
     module Workflows
       require "floe"
 
-      class BuiltinRunnner < Floe::Runner
+      class BuiltinRunner < Floe::Runner
         SCHEME = "manageiq".freeze
         SCHEME_PREFIX = "#{SCHEME}://".freeze
 
@@ -73,4 +73,4 @@ module ManageIQ
   end
 end
 
-Floe::Runner.register_scheme(ManageIQ::Providers::Workflows::BuiltinRunnner::SCHEME, ManageIQ::Providers::Workflows::BuiltinRunnner.new)
+Floe::Runner.register_scheme(ManageIQ::Providers::Workflows::BuiltinRunner::SCHEME, ManageIQ::Providers::Workflows::BuiltinRunner.new)
