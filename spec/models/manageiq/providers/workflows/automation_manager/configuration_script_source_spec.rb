@@ -206,18 +206,30 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
       context "with workflows with invalid json" do
         let(:repo_dir_structure) { %w[invalid_json.asl] }
 
-        it "skips the invalid workflow file" do
+        it "sets the payload_valid and payload_error attributes" do
           record = build_record
-          expect(record.configuration_script_payloads).to be_empty
+          expect(record.configuration_script_payloads.first).to have_attributes(
+            :name          => "invalid_json.asl",
+            :payload       => "{\"Invalid Json\"\n",
+            :payload_type  => "json",
+            :payload_valid => false,
+            :payload_error => "unexpected token at '{\"Invalid Json\"\n'"
+          )
         end
       end
 
       context "with workflows with missing states" do
         let(:repo_dir_structure) { %w[missing_states.asl] }
 
-        it "skips the invalid workflow file" do
+        it "sets the payload_valid and payload_error attributes" do
           record = build_record
-          expect(record.configuration_script_payloads).to be_empty
+          expect(record.configuration_script_payloads.first).to have_attributes(
+            :name          => "missing_states.asl",
+            :payload       => "{\"Comment\": \"Missing States\"}\n",
+            :payload_type  => "json",
+            :payload_valid => false,
+            :payload_error => "Missing field \"States\""
+          )
         end
       end
 
