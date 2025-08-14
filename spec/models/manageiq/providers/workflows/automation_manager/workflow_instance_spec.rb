@@ -244,8 +244,12 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
         end
 
         it "passes the resolved credential to the runner" do
-          # second argument is a new Context that was created with context.to_h
-          expect(Floe::Workflow).to receive(:new).with(payload.to_json, anything, {"username" => "my-user", "password" => "shhhh!"}).and_call_original
+          expect(workflow_instance.send(:resolved_credentials)).to eq({"username" => "my-user", "password" => "shhhh!"})
+          expect(Floe::Workflow).to receive(:new) do |pay_arg, context_arg|
+            expect(pay_arg).to eq(payload.to_json)
+            expect(context_arg.credentials).to eq({"username" => "my-user", "password" => "shhhh!"})
+          end.and_call_original
+
           workflow_instance.run
         end
 

@@ -60,9 +60,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
     object = object_type.constantize.find_by(:id => object_id) if object_type && object_id
     object.before_ae_starts({}) if object.present? && object.respond_to?(:before_ae_starts)
 
-    context_obj = Floe::Workflow::Context.new(context, :logger => create_logger(object))
+    context_obj = Floe::Workflow::Context.new(context, :credentials => resolved_credentials, :logger => create_logger(object))
 
-    wf = Floe::Workflow.new(payload, context_obj, resolved_credentials)
+    wf = Floe::Workflow.new(payload, context_obj)
     wf.run_nonblock
     update_credentials!(wf.credentials)
 

@@ -1,4 +1,4 @@
-RSpec.describe ManageIQ::Providers::Workflows::BuiltinRunnner do
+RSpec.describe ManageIQ::Providers::Workflows::BuiltinRunner do
   require "floe"
 
   let(:subject) { described_class.new(options) }
