@@ -143,7 +143,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
             "FirstState" => {
               "Type"       => "Pass",
               "Result"     => {"Bearer" => "TOKEN"},
-              "ResultPath" => "$.Credentials",
+              "ResultPath" => "$$.Credentials",
               "End"        => true
             }
           }
@@ -262,7 +262,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
                 "FirstState" => {
                   "Type"        => "Pass",
                   "Result"      => {"password" => "new_password"},
-                  "ResultPath"  => "$.Credentials",
+                  "ResultPath"  => "$$.Credentials",
                   "Credentials" => {
                     "username.$" => "$.username",
                     "password.$" => "$.password"
