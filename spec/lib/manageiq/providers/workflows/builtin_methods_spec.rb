@@ -4,6 +4,58 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
   let(:ctx) { Floe::Workflow::Context.new }
   let(:secrets) { {} }
 
+  describe ".api" do
+    let(:faraday_stub) { double("Faraday::Connection") }
+    let(:ctx) { Floe::Workflow::Context.new({"Execution" => {"_manageiq_api_url" => "http://localhost:3000"}}) }
+
+    before do
+      require "faraday"
+      allow(Faraday).to receive(:new).and_return(faraday_stub)
+      allow(faraday_stub).to receive(:response).with(:follow_redirects)
+      allow(faraday_stub).to receive(:response).with(:json)
+      allow(faraday_stub).to receive(:request).with(:json)
+    end
+
+    it "uses the API URL from the execution context" do
+      expect(Faraday).to receive(:new).with(hash_including(:url => "http://localhost:3000/api/auth")).and_return(faraday_stub)
+      expect(faraday_stub).to receive(:get).and_return(Faraday::Response.new(:status => 200, :body => "{}"))
+
+      params = {"Path" => "/api/auth"}
+      runner_context = described_class.api(params, secrets, ctx)
+      expect(runner_context)
+        .to include(
+          "running" => false,
+          "success" => true,
+          "output"  => {"Body" => "{}", "Headers" => nil, "Status" => 200}
+        )
+    end
+
+    it "uses the URL from Params if it is present" do
+      expect(Faraday).to receive(:new).with(hash_including(:url => "https://manageiq-api-server/api/auth")).and_return(faraday_stub)
+      expect(faraday_stub).to receive(:get).and_return(Faraday::Response.new(:status => 200, :body => "{}"))
+
+      params = {"Url" => "https://manageiq-api-server/api/auth"}
+      runner_context = described_class.api(params, secrets, ctx)
+      expect(runner_context)
+        .to include(
+          "running" => false,
+          "success" => true,
+          "output"  => {"Body" => "{}", "Headers" => nil, "Status" => 200}
+        )
+    end
+
+    it "returns an error if both Path and Url are provided" do
+      params = {"Url" => "https://manageiq-api-server/api/auth", "Path" => "/api/auth"}
+      runner_context = described_class.api(params, secrets, ctx)
+      expect(runner_context)
+        .to include(
+          "running" => false,
+          "success" => false,
+          "output"  => {"Cause" => "You must provide either Url or Path, not both", "Error" => "States.TaskFailed"}
+        )
+    end
+  end
+
   describe ".http" do
     let(:faraday_stub) { double("Faraday::Connection") }
 
