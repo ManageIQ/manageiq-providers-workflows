@@ -4,6 +4,29 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
   let(:ctx) { Floe::Workflow::Context.new }
   let(:secrets) { {} }
 
+  describe ".http" do
+    let(:faraday_stub) { double("Faraday::Connection") }
+
+    before do
+      require "faraday"
+      allow(Faraday).to receive(:new).and_return(faraday_stub)
+      allow(faraday_stub).to receive(:response).with(:follow_redirects)
+    end
+
+    it "performs the get" do
+      expect(faraday_stub).to receive(:get).and_return(Faraday::Response.new(:status => 200, :body => "{}"))
+
+      params = {"Method" => "GET", "Url" => "http://localhost"}
+      runner_context = described_class.http(params, secrets, ctx)
+      expect(runner_context)
+        .to include(
+          "running" => false,
+          "success" => true,
+          "output"  => {"Body" => "{}", "Headers" => nil, "Status" => 200}
+        )
+    end
+  end
+
   describe ".email" do
     let(:params) { {"To" => "foo@bar.com", "From" => "baz@bar.com"} }
 

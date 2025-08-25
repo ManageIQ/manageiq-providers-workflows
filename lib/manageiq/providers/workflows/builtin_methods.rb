@@ -1,7 +1,7 @@
 module ManageIQ
   module Providers
     module Workflows
-      class BuiltinMethods < BasicObject
+      class BuiltinMethods < Floe::BuiltinRunner::Methods
         def self.email(params, _secrets, context)
           options = params.slice("To", "From", "Subject", "Cc", "Bcc", "Body", "Attachment").transform_keys { |k| k.downcase.to_sym }
           options[:from] ||= ::Settings.smtp.from
