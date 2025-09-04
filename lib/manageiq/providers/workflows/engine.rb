@@ -71,7 +71,7 @@ module ManageIQ
             Floe::ContainerRunner.set_runner("kubernetes", options)
           when "podman"
             options = {}
-            options["root"] = "/var/lib/manageiq/containers/storage" if Rails.env.production?
+            options["root"] = "/var/lib/manageiq/containers/storage" if MiqEnvironment::Command.is_appliance?
             options.merge!(floe_runner_settings.podman.to_hash.stringify_keys)
 
             Floe::ContainerRunner.set_runner("podman", options)
