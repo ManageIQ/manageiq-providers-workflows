@@ -21,6 +21,12 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstan
     }
   end
 
+  before do
+    runner_mock = double("ManageIQ::Providers::Workflows::Runner", :add_workflow_instance => nil, :delete_workflow_instance => nil)
+
+    allow(ManageIQ::Providers::Workflows::Runner).to receive(:runner).and_return(runner_mock)
+  end
+
   describe "#run_queue" do
     it "queues WorkflowInstance#run" do
       workflow_instance.run_queue
