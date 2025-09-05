@@ -30,17 +30,17 @@ module ManageIQ
 
           if playbook_id
             playbook = ::ConfigurationScriptPayload.find_by(:id => playbook_id)
-            return BuiltinRunner.error!({}, :cause => "Unable to find Playbook: Id: [#{playbook_id}] Repository: [#{repository.name}]") if playbook.nil?
+            return ::Floe::BuiltinRunner.error!({}, :cause => "Unable to find Playbook: Id: [#{playbook_id}] Repository: [#{repository.name}]") if playbook.nil?
           else
             repository = ::ConfigurationScriptSource.find_by(:scm_url => repository_url, :scm_branch => repository_branch)
-            return BuiltinRunner.error!({}, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
+            return ::Floe::BuiltinRunner.error!({}, :cause => "Unable to find Repository: URL: [#{repository_url}] Branch: [#{repository_branch}]") if repository.nil?
 
             playbook = ::ConfigurationScriptPayload.find_by(:configuration_script_source => repository, :name => playbook_name)
-            return BuiltinRunner.error!({}, :cause => "Unable to find Playbook: Name: [#{playbook_name}] Repository: [#{repository.name}]") if playbook.nil?
+            return ::Floe::BuiltinRunner.error!({}, :cause => "Unable to find Playbook: Name: [#{playbook_name}] Repository: [#{repository.name}]") if playbook.nil?
           end
 
           unless playbook.class <= ::ManageIQ::Providers::EmbeddedAnsible::AutomationManager::Playbook
-            return BuiltinRunner.error!({}, :cause => "Invalid playbook: ID: [#{playbook.id}] Type: [#{playbook.type}]")
+            return ::Floe::BuiltinRunner.error!({}, :cause => "Invalid playbook: ID: [#{playbook.id}] Type: [#{playbook.type}]")
           end
 
           job = playbook.run(vars)
@@ -54,12 +54,12 @@ module ManageIQ
 
         def self.provision_execute(_params, _secrets, context)
           object_type, object_id = context.execution.values_at("_object_type", "_object_id")
-          return BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
-          return BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask id")   if object_id.nil?
+          return ::Floe::BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
+          return ::Floe::BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask id")   if object_id.nil?
 
           miq_request_task = ::MiqRequestTask.find_by(:id => object_id.to_i)
-          return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]")                        if miq_request_task.nil?
-          return BuiltinRunner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvision
+          return ::Floe::BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]")                        if miq_request_task.nil?
+          return ::Floe::BuiltinRunner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvision
 
           new_options = context.input.symbolize_keys.slice(*miq_request_task.options.keys)
           miq_request_task.options_will_change!
@@ -78,7 +78,7 @@ module ManageIQ
 
         private_class_method def self.miq_task_status!(runner_context)
           miq_task = ::MiqTask.find_by(:id => runner_context["miq_task_id"])
-          return BuiltinRunner.error!(runner_context, :cause => "Unable to find MiqTask id: [#{runner_context["miq_task_id"]}]") if miq_task.nil?
+          return ::Floe::BuiltinRunner.error!(runner_context, :cause => "Unable to find MiqTask id: [#{runner_context["miq_task_id"]}]") if miq_task.nil?
 
           runner_context["running"] = miq_task.state != ::MiqTask::STATE_FINISHED
 
@@ -87,7 +87,7 @@ module ManageIQ
             if runner_context["success"]
               runner_context["output"] = miq_task.message
             else
-              BuiltinRunner.error!(runner_context, :cause => miq_task.message)
+              Floe::BuiltinRunner.error!(runner_context, :cause => miq_task.message)
             end
           end
 
@@ -100,15 +100,15 @@ module ManageIQ
           case miq_request_task&.statemachine_task_status
           when nil
             reason = "Unable to find MiqRequestTask id: [#{runner_context["miq_request_task_id"]}]"
-            BuiltinRunner.error!(runner_context, :cause => reason)
+            Floe::BuiltinRunner.error!(runner_context, :cause => reason)
           when "error"
             reason = miq_request_task.message&.sub(/^Error: /, "")
-            BuiltinRunner.error!(runner_context, :cause => reason)
+            Floe::BuiltinRunner.error!(runner_context, :cause => reason)
           when "retry"
             runner_context["running"] = true
             runner_context
           when "ok"
-            BuiltinRunner.success!(runner_context, :output => {"Result" => "provisioned"})
+            Floe::BuiltinRunner.success!(runner_context, :output => {"Result" => "provisioned"})
           end
         end
       end
