@@ -59,7 +59,7 @@ module ManageIQ
 
           miq_request_task = ::MiqRequestTask.find_by(:id => object_id.to_i)
           return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]")                        if miq_request_task.nil?
-          return BuiltinRunner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvision
+          return BuiltinRunner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvisionTask
 
           new_options = context.input.symbolize_keys.slice(*miq_request_task.options.keys)
           miq_request_task.options_will_change!
