@@ -2,6 +2,25 @@ module ManageIQ
   module Providers
     module Workflows
       class BuiltinMethods < Floe::BuiltinRunner::Methods
+        def self.api(params, secrets, context)
+          return BuiltinRunner.error!({}, :cause => "You must provide either Url or Path, not both") if params.key?("Url") && params.key?("Path")
+
+          unless params.key?("Url")
+            path         = params.delete("Path") || "/"
+            api_base_url = context.execution["_manageiq_api_url"]
+
+            params["Url"] ||= ::URI.join(api_base_url, path).to_s
+          end
+
+          params["Options"] ||= {}
+          params["Options"]["Encoding"] ||= "JSON"
+
+          params["Headers"] ||= {}
+          params["Headers"]["ContentType"] ||= "application/json"
+
+          http(params, secrets, context)
+        end
+
         def self.email(params, _secrets, context)
           options = params.slice("To", "From", "Subject", "Cc", "Bcc", "Body", "Attachment").transform_keys { |k| k.downcase.to_sym }
           options[:from] ||= ::Settings.smtp.from
@@ -59,7 +78,7 @@ module ManageIQ
 
           miq_request_task = ::MiqRequestTask.find_by(:id => object_id.to_i)
           return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]")                        if miq_request_task.nil?
-          return BuiltinRunner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvision
+          return BuiltinRunner.error!({}, :cause => "Calling provision_execute on non-provisioning request: [#{object_type}]") unless miq_request_task.class < ::MiqProvisionTask
 
           new_options = context.input.symbolize_keys.slice(*miq_request_task.options.keys)
           miq_request_task.options_will_change!
