@@ -255,6 +255,45 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     end
   end
 
+  describe ".retire_execute" do
+    let(:params) { {} }
+    let(:ems)    { FactoryBot.create(:ems_vmware_with_authentication, :zone => zone) }
+    let(:vm)     { FactoryBot.create(:vm_vmware, :ext_management_system => ems) }
+    let(:zone)   { EvmSpecHelper.local_miq_server.zone }
+    let(:retire_request) { FactoryBot.create(:service_retire_request).tap { |r| r.miq_approvals.update_all(:state => "approved") } }
+    let(:retire_task) do
+      FactoryBot.create(:vm_retire_task, :options => {:src_vm_id => vm.id}, :miq_request => retire_request)
+    end
+
+    it "requires _object_type" do
+      runner_context = described_class.retire_execute(params, secrets, create_floe_context(:execution => {"_object_id" => nil}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Missing MiqRequestTask type"))
+    end
+
+    it "requires _object_id" do
+      runner_context = described_class.retire_execute(params, secrets, create_floe_context(:execution => {"_object_type" => "MiqProvision"}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Missing MiqRequestTask id"))
+    end
+
+    it "requires a retire task" do
+      floe_context = create_floe_context(FactoryBot.create(:service_reconfigure_task, :request_type => "service_reconfigure"))
+      runner_context = described_class.retire_execute(params, secrets, floe_context)
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status(/Calling retire_execute on non-retire request/))
+    end
+
+    context "passing options with Parameters" do
+      let(:params) { {"RemovalType" => "remove_from_disk", "DeleteFromVmdb" => true} }
+      it "updates task options" do
+        floe_context = create_floe_context(retire_task)
+        runner_context = described_class.retire_execute(params, secrets, floe_context)
+        retire_task.reload
+
+        expect(runner_context["miq_request_task_id"]).to eq(retire_task.id)
+        expect(retire_task.options).to include(:removal_type => "remove_from_disk", :delete_from_vmdb => true)
+      end
+    end
+  end
+
   def create_floe_context(object = nil, execution: nil, input: {})
     execution ||= {"_object_id" => object&.id, "_object_type" => object&.class}.compact
 
