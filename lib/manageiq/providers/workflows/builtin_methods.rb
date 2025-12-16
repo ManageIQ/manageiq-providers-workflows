@@ -93,6 +93,29 @@ module ManageIQ
           miq_request_task_status!(runner_context)
         end
 
+        def self.retire_execute(params, _secrets, context)
+          object_type, object_id = context.execution.values_at("_object_type", "_object_id")
+          return BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
+          return BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask id")   if object_id.nil?
+
+          miq_request_task = ::MiqRequestTask.find_by(:id => object_id.to_i)
+          return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{object_id}]")               if miq_request_task.nil?
+          return BuiltinRunner.error!({}, :cause => "Calling retire_execute on non-retire request: [#{object_type}]") unless miq_request_task.class < ::MiqRetireTask
+
+          new_options = params.transform_keys { |k| k.underscore.to_sym }
+
+          miq_request_task.options_will_change!
+          miq_request_task.options.merge!(new_options)
+          miq_request_task.save!
+          miq_request_task.execute_queue
+
+          {"miq_request_task_id" => miq_request_task.id}
+        end
+
+        private_class_method def self.retire_execute_status!(runner_context)
+          miq_request_task_status!(runner_context)
+        end
+
         # general methods
 
         private_class_method def self.miq_task_status!(runner_context)
@@ -127,7 +150,7 @@ module ManageIQ
             runner_context["running"] = true
             runner_context
           when "ok"
-            BuiltinRunner.success!(runner_context, :output => {"Result" => "provisioned"})
+            BuiltinRunner.success!(runner_context, :output => {"Result" => miq_request_task.completed_state})
           end
         end
       end
