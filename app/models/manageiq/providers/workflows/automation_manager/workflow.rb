@@ -16,6 +16,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
 
     execution_context["Id"]                = manager_ref
     execution_context["_manageiq_api_url"] = MiqRegion.my_region.remote_ws_url
+    execution_context["_manageiq_ui_url"]  = MiqRegion.my_region.remote_ui_url
 
     if object
       execution_context["_object_type"] = object.class.name
