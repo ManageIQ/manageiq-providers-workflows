@@ -9,7 +9,7 @@ module ManageIQ
             path         = params.delete("Path") || "/"
             api_base_url = context.execution["_manageiq_api_url"]
 
-            params["Url"] ||= ::URI.join(api_base_url, path).to_s
+            params["Url"] ||= ::File.join(api_base_url, path).to_s
           end
 
           params["Options"] ||= {}
@@ -92,7 +92,7 @@ module ManageIQ
           miq_request_task.save!
           miq_request_task.execute_queue
 
-          {"miq_request_task_id" => miq_request_task.id}
+          {"miq_request_task_id" => miq_request_task.id, "_manageiq_api_url" => context.execution&.dig("_manageiq_api_url")}
         end
 
         private_class_method def self.provision_execute_status!(runner_context)
@@ -115,7 +115,7 @@ module ManageIQ
           miq_request_task.save!
           miq_request_task.execute_queue
 
-          {"miq_request_task_id" => miq_request_task.id}
+          {"miq_request_task_id" => miq_request_task.id, "_manageiq_api_url" => context.execution&.dig("_manageiq_api_url")}
         end
 
         private_class_method def self.retire_execute_status!(runner_context)
@@ -156,8 +156,27 @@ module ManageIQ
             runner_context["running"] = true
             runner_context
           when "ok"
-            BuiltinRunner.success!(runner_context, :output => {"Result" => miq_request_task.completed_state})
+            BuiltinRunner.success!(runner_context, :output => miq_request_task_result(runner_context, miq_request_task))
           end
+        end
+
+        private_class_method def self.miq_request_task_result(runner_context, miq_request_task)
+          api_base_url = ::File.join(runner_context["_manageiq_api_url"], "api") if runner_context["_manageiq_api_url"]
+
+          result         = {"id" => miq_request_task.id, "state" => miq_request_task.state, "status" => miq_request_task.status}
+          result["href"] = ::File.join(api_base_url, miq_request_task.href_slug) if api_base_url
+
+          if miq_request_task.source
+            result["source"]         = {"id" => miq_request_task.source_id}
+            result["source"]["href"] = ::File.join(api_base_url, miq_request_task.source.href_slug) if api_base_url
+          end
+
+          if miq_request_task.destination
+            result["destination"]         = {"id" => miq_request_task.destination_id}
+            result["destination"]["href"] = ::File.join(api_base_url, miq_request_task.destination.href_slug) if api_base_url
+          end
+
+          result
         end
       end
     end
