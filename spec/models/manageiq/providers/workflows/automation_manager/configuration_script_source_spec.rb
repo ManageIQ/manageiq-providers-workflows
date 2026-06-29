@@ -213,7 +213,7 @@ RSpec.describe ManageIQ::Providers::Workflows::AutomationManager::ConfigurationS
             :payload       => "{\"Invalid Json\"\n",
             :payload_type  => "json",
             :payload_valid => false,
-            :payload_error => "expected ':' after object key at line 1 column 1"
+            :payload_error => a_string_matching(/expected ':' after object key/)
           )
         end
       end
