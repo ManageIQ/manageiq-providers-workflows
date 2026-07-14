@@ -9,6 +9,7 @@ class ManageIQ::Providers::Workflows::AutomationManager::Workflow < ManageIQ::Pr
 
   def run(inputs: {}, userid: "system", zone: nil, role: "automate", object: nil, execution_context: {})
     require "floe"
+    require "floe/servicenow"
 
     manager_ref = SecureRandom.uuid
 
