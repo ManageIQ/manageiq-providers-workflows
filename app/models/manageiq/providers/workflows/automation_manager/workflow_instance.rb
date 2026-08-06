@@ -52,6 +52,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::WorkflowInstance < Mana
   end
 
   def run(args = {})
+    require "floe"
+    require "floe/servicenow"
+
     queue_args = args.slice(:zone, :role, :object_type, :object_id)
     zone, role, object_type, object_id = queue_args.values_at(:zone, :role, :object_type, :object_id)
 
