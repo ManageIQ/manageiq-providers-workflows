@@ -54,6 +54,78 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
           "output"  => {"Cause" => "You must provide either Url or Path, not both", "Error" => "States.TaskFailed"}
         )
     end
+
+    it "adds a Basic authorization header if username and password is passed in Credentials" do
+      expect(Faraday)
+        .to receive(:new)
+        .with(
+          hash_including(
+            :url     => "http://localhost:3000/api/auth",
+            :headers => hash_including("Authorization" => "Basic #{Base64.strict_encode64("admin:password")}")
+          )
+        )
+        .and_return(faraday_stub)
+      expect(faraday_stub).to receive(:get).and_return(Faraday::Response.new(:status => 200, :body => "{}"))
+
+      params  = {"Path" => "/api/auth"}
+      secrets = {"username" => "admin", "password" => "password"}
+
+      runner_context = described_class.api(params, secrets, ctx)
+      expect(runner_context)
+        .to include(
+          "running" => false,
+          "success" => true,
+          "output"  => {"Body" => "{}", "Headers" => nil, "Status" => 200}
+        )
+    end
+
+    it "adds a Bearer authorization header if bearer_token is passed in Credentials" do
+      expect(Faraday)
+        .to receive(:new)
+        .with(
+          hash_including(
+            :url     => "http://localhost:3000/api/auth",
+            :headers => hash_including("Authorization" => "Bearer abcdefg")
+          )
+        )
+        .and_return(faraday_stub)
+      expect(faraday_stub).to receive(:get).and_return(Faraday::Response.new(:status => 200, :body => "{}"))
+
+      params  = {"Path" => "/api/auth"}
+      secrets = {"bearer_token" => "abcdefg"}
+
+      runner_context = described_class.api(params, secrets, ctx)
+      expect(runner_context)
+        .to include(
+          "running" => false,
+          "success" => true,
+          "output"  => {"Body" => "{}", "Headers" => nil, "Status" => 200}
+        )
+    end
+
+    it "Bearer token takes precedence if username/password also passed" do
+      expect(Faraday)
+        .to receive(:new)
+        .with(
+          hash_including(
+            :url     => "http://localhost:3000/api/auth",
+            :headers => hash_including("Authorization" => "Bearer abcdefg")
+          )
+        )
+        .and_return(faraday_stub)
+      expect(faraday_stub).to receive(:get).and_return(Faraday::Response.new(:status => 200, :body => "{}"))
+
+      params  = {"Path" => "/api/auth"}
+      secrets = {"username" => "admin", "password" => "password", "bearer_token" => "abcdefg"}
+
+      runner_context = described_class.api(params, secrets, ctx)
+      expect(runner_context)
+        .to include(
+          "running" => false,
+          "success" => true,
+          "output"  => {"Body" => "{}", "Headers" => nil, "Status" => 200}
+        )
+    end
   end
 
   describe ".http" do
@@ -235,23 +307,39 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status(/Calling provision_execute on non-provisioning request/))
     end
 
-    it "updates task options" do
-      task_options = {
-        :src_vm_id => FactoryBot.create(:vm_vmware, :ext_management_system => FactoryBot.create(:ems_vmware_with_authentication)).id,
-        :param1    => 5,
-        :param2    => 4,
-        :param3    => 3
-      }
-      request = FactoryBot.create(:miq_provision_request, :with_approval)
-      request.miq_approvals.update_all(:state => "approved")
-      task = FactoryBot.create(:miq_provision_vmware, :clone_to_vm, :options => task_options, :miq_request => request)
-      floe_context = create_floe_context(task, :input => {:param1 => 1, :param2 => 2})
-      runner_context = described_class.provision_execute(params, secrets, floe_context)
-      task.reload
+    context "with a miq_provision_task" do
+      let(:ems)     { FactoryBot.create(:ems_vmware_with_authentication) }
+      let(:request) { FactoryBot.create(:miq_provision_request, :with_approval).tap { |r| r.miq_approvals.update_all(:state => "approved") } }
+      let(:source)  { FactoryBot.create(:template_vmware, :ext_management_system => ems) }
+      let(:dest)    { FactoryBot.create(:vm_vmware, :ext_management_system => ems) }
+      let(:options) { {:src_vm_id => source.id, :vm_name => "myvm", :memory_mb => 1_024} }
+      let(:task)    { FactoryBot.create(:miq_provision_vmware, :clone_to_vm, :options => options, :miq_request => request) }
 
-      expect(runner_context["miq_request_task_id"]).to eq(task.id)
-      expect(task.options).to include(:param1 => 1, :param2 => 2, :param3 => 3)
-      expect(task.options.key?(:param4)).to eq(false)
+      it "updates task options" do
+        floe_context = create_floe_context(task, :input => {:vm_name => "myvm2", :cpu_sockets => 2})
+        runner_context = described_class.provision_execute(params, secrets, floe_context)
+        task.reload
+
+        expect(runner_context["miq_request_task_id"]).to eq(task.id)
+        expect(task.options).to include(:vm_name => "myvm2", :memory_mb => 1_024)
+        expect(task.options.keys).not_to include(:cpu_sockets)
+      end
+
+      it "returns the miq_request_task info" do
+        floe_context = create_floe_context(task)
+        runner_context = described_class.provision_execute(params, secrets, floe_context)
+        task.update!(:state => "provisioned", :status => "Ok", :destination => dest)
+        described_class.send(:provision_execute_status!, runner_context)
+
+        expect(runner_context["output"]).to include(
+          "id"          => task.id,
+          "href"        => "http://localhost:3000/api/request_tasks/#{task.id}",
+          "state"       => "provisioned",
+          "status"      => "Ok",
+          "source"      => {"id" => source.id, "href" => "http://localhost:3000/api/templates/#{source.id}"},
+          "destination" => {"id" => dest.id,   "href" => "http://localhost:3000/api/vms/#{dest.id}"}
+        )
+      end
     end
   end
 
@@ -295,7 +383,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
   end
 
   def create_floe_context(object = nil, execution: nil, input: {})
-    execution ||= {"_object_id" => object&.id, "_object_type" => object&.class}.compact
+    execution ||= {"_object_id" => object&.id, "_object_type" => object&.class, "_manageiq_api_url" => "http://localhost:3000"}.compact
 
     Floe::Workflow::Context.new({"Execution" => execution}, :input => input.to_json).tap { |ctx| ctx.state["Input"] = input }
   end

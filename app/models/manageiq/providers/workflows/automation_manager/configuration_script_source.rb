@@ -75,6 +75,9 @@ class ManageIQ::Providers::Workflows::AutomationManager::ConfigurationScriptSour
   end
 
   def create_workflow_from_payload(name, payload, fail_on_invalid_workflow:)
+    require "floe"
+    require "floe/servicenow"
+
     floe_workflow, payload_error =
       begin
         Floe::Workflow.new(payload)
