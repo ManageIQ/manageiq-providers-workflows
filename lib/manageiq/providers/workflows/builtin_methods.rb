@@ -77,6 +77,39 @@ module ManageIQ
           miq_task_status!(runner_context)
         end
 
+        def self.provision_task(params, _secrets, context)
+          service_task_type, service_task_id = context.execution.values_at("_object_type", "_object_id")
+          return BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask type") if service_task_type.nil?
+          return BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask id")   if service_task_id.nil?
+
+          service_task = ::MiqRequestTask.find_by(:id => service_task_id)
+          return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{service_task_id}]") if service_task.nil?
+
+          params["options"].deep_symbolize_keys! if params["options"]
+
+          create_options = {
+            :miq_request_id      => service_task.miq_request_id,
+            :miq_request_task_id => service_task.id,
+            :userid              => service_task.userid,
+          }.merge(params)
+
+          begin
+            request_klass = ::MiqRequest.class_from_request_data(:request_type => params["request_type"])
+          rescue ::ArgumentError
+            return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeust class from request_type: [#{params["request_type"]}]")
+          end
+
+          request_task_klass = request_klass.request_task_class_from(create_options)
+
+          miq_request_task = request_task_klass.create!(create_options)
+          miq_request_task.execute_queue
+          {"miq_request_task_id" => miq_request_task.id, "_manageiq_api_url" => context.execution&.dig("_manageiq_api_url")}
+        end
+
+        private_class_method def self.provision_task_status!(runner_context)
+          miq_request_task_status!(runner_context)
+        end
+
         def self.provision_execute(_params, _secrets, context)
           object_type, object_id = context.execution.values_at("_object_type", "_object_id")
           return BuiltinRunner.error!({}, :cause => "Missing MiqRequestTask type") if object_type.nil?
@@ -163,6 +196,7 @@ module ManageIQ
         private_class_method def self.miq_request_task_result(runner_context, miq_request_task)
           api_base_url = ::File.join(runner_context["_manageiq_api_url"], "api") if runner_context["_manageiq_api_url"]
 
+          # TODO MiqProvision state=provisioned instead of finished doesn't mark the parent as completed
           result         = {"id" => miq_request_task.id, "state" => miq_request_task.state, "status" => miq_request_task.status}
           result["href"] = ::File.join(api_base_url, miq_request_task.href_slug) if api_base_url
 
