@@ -85,7 +85,7 @@ module ManageIQ
           service_task = ::MiqRequestTask.find_by(:id => service_task_id)
           return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{service_task_id}]") if service_task.nil?
 
-          params["options"].deep_symbolize_keys! if params["options"]
+          params["options"]&.deep_symbolize_keys!
 
           create_options = {
             :miq_request_id      => service_task.miq_request_id,
@@ -108,6 +108,9 @@ module ManageIQ
 
         private_class_method def self.provision_task_status!(runner_context)
           miq_request_task_status!(runner_context)
+
+          miq_request_task = ::MiqRequestTask.find(runner_context["miq_request_task_id"])
+          miq_request_task.update!(:state => "finished") if miq_request_task&.statemachine_task_status == "ok"
         end
 
         def self.provision_execute(_params, _secrets, context)
@@ -219,7 +222,6 @@ module ManageIQ
         private_class_method def self.miq_request_task_result(runner_context, miq_request_task)
           api_base_url = ::File.join(runner_context["_manageiq_api_url"], "api") if runner_context["_manageiq_api_url"]
 
-          # TODO MiqProvision state=provisioned instead of finished doesn't mark the parent as completed
           result         = {"id" => miq_request_task.id, "state" => miq_request_task.state, "status" => miq_request_task.status}
           result["href"] = ::File.join(api_base_url, miq_request_task.href_slug) if api_base_url
 

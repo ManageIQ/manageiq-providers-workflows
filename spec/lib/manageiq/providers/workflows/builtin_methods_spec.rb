@@ -336,7 +336,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       end
 
       context "with an invalid request_type" do
-        let(:params)  { {"request_type" => "typo", "options" => {"src_vm_id" => [source.id, source.name]}} }
+        let(:params) { {"request_type" => "typo", "options" => {"src_vm_id" => [source.id, source.name]}} }
 
         it "returns an error" do
           runner_context = described_class.provision_task(params, secrets, create_floe_context(task))
