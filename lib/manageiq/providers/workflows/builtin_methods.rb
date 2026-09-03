@@ -108,6 +108,9 @@ module ManageIQ
 
         private_class_method def self.provision_task_status!(runner_context)
           miq_request_task_status!(runner_context)
+
+          miq_request_task = ::MiqRequestTask.find(runner_context["miq_request_task_id"])
+          miq_request_task.update!(:state => "finished") if miq_request_task&.statemachine_task_status == "ok"
         end
 
         def self.provision_execute(_params, _secrets, context)
