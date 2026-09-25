@@ -288,6 +288,87 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     end
   end
 
+  describe ".provision_task" do
+    it "requires _object_type" do
+      runner_context = described_class.provision_task({}, secrets, create_floe_context(:execution => {"_object_id" => 1}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Missing MiqRequestTask type"))
+    end
+
+    it "requires _object_id" do
+      runner_context = described_class.provision_task({}, secrets, create_floe_context(:execution => {"_object_type" => "ServiceTemplateProvisionTask"}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Missing MiqRequestTask id"))
+    end
+
+    it "returns an error when the MiqRequestTask cannot be found" do
+      runner_context = described_class.provision_task({}, secrets, create_floe_context(:execution => {"_object_type" => "ServiceTemplateProvisionTask", "_object_id" => 0}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find MiqReqeustTask id: [0]"))
+    end
+
+    context "VM Provision" do
+      let(:ems)     { FactoryBot.create(:ems_vmware_with_authentication) }
+      let(:source)  { FactoryBot.create(:template_vmware, :ext_management_system => ems) }
+      let(:request) { FactoryBot.create(:service_template_provision_request, :with_approval).tap { |r| r.miq_approvals.update_all(:state => "approved") } }
+      let(:task)    { FactoryBot.create(:service_template_provision_task, :miq_request => request, :userid => "admin") }
+      let(:params)  { {"request_type" => "template", "options" => {"src_vm_id" => [source.id, source.name]}} }
+
+      it "creates an MiqProvision linked to the service task" do
+        floe_context   = create_floe_context(task)
+        runner_context = described_class.provision_task(params, secrets, floe_context)
+
+        miq_provision = MiqProvision.find(runner_context["miq_request_task_id"])
+        expect(miq_provision).to be_kind_of(ems.class.provision_class(nil))
+        expect(miq_provision).to have_attributes(
+          :source           => source,
+          :miq_request      => request,
+          :miq_request_task => task,
+          :userid           => task.userid,
+          :request_type     => "template"
+        )
+        expect(runner_context).to include("_manageiq_api_url" => "http://localhost:3000")
+      end
+
+      it "merges extra params into the provision attributes" do
+        floe_context   = create_floe_context(task)
+        runner_context = described_class.provision_task(params.merge("description" => "my provision task"), secrets, floe_context)
+
+        miq_provision = MiqProvision.find(runner_context["miq_request_task_id"])
+        expect(miq_provision).to have_attributes(:description => "my provision task")
+      end
+
+      context "with an invalid request_type" do
+        let(:params)  { {"request_type" => "typo", "options" => {"src_vm_id" => [source.id, source.name]}} }
+
+        it "returns an error" do
+          runner_context = described_class.provision_task(params, secrets, create_floe_context(task))
+          expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find MiqReqeust class from request_type: [typo]"))
+        end
+      end
+    end
+
+    context "ConfigurationScript Provisioning" do
+      let(:ems)     { FactoryBot.create(:embedded_automation_manager_terraform) }
+      let(:request) { FactoryBot.create(:service_template_provision_request, :with_approval).tap { |r| r.miq_approvals.update_all(:state => "approved") } }
+      let(:task)    { FactoryBot.create(:service_template_provision_task, :miq_request => request, :userid => "admin") }
+      let(:source)  { FactoryBot.create(:configuration_script_embedded_terraform, :manager => ems) }
+      let(:params)  { {"request_type" => "provision_via_automation_manager", "source_type" => "ConfigurationScript", "source_id" => source.id, "options" => {"src_configuration_script_id" => [source.id, source.name]}} }
+
+      it "creates a Provision task linked to the service task" do
+        floe_context   = create_floe_context(task)
+        runner_context = described_class.provision_task(params, secrets, floe_context)
+
+        prov_task = MiqProvisionTask.find(runner_context["miq_request_task_id"])
+        expect(prov_task).to be_kind_of(ems.class.provision_class(nil))
+        expect(prov_task).to have_attributes(
+          :source           => source,
+          :miq_request      => request,
+          :miq_request_task => task,
+          :userid           => task.userid
+        )
+        expect(runner_context).to include("_manageiq_api_url" => "http://localhost:3000")
+      end
+    end
+  end
+
   describe ".provision_execute" do
     let(:params)  { {} }
 
