@@ -289,7 +289,7 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
   end
 
   describe ".provision_execute" do
-    let(:params)  { {} }
+    let(:params) { {} }
 
     it "requires _object_type" do
       runner_context = described_class.provision_execute(params, secrets, create_floe_context(:execution => {"_object_id" => nil}))
@@ -339,6 +339,92 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
           "source"      => {"id" => source.id, "href" => "http://localhost:3000/api/templates/#{source.id}"},
           "destination" => {"id" => dest.id,   "href" => "http://localhost:3000/api/vms/#{dest.id}"}
         )
+      end
+    end
+  end
+
+  describe ".reconfigure_execute" do
+    let(:params) { {} }
+
+    it "requires _object_type" do
+      runner_context = described_class.reconfigure_execute(params, secrets, create_floe_context(:execution => {"_object_id" => nil}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Missing MiqRequestTask type"))
+    end
+
+    it "requires _object_id" do
+      runner_context = described_class.reconfigure_execute(params, secrets, create_floe_context(:execution => {"_object_type" => "ServiceReconfigureTask"}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Missing MiqRequestTask id"))
+    end
+
+    it "requires a reconfigure task" do
+      floe_context = create_floe_context(FactoryBot.create(:miq_provision_vmware, :clone_to_vm,
+                                                           :options     => {:src_vm_id => FactoryBot.create(:template_vmware, :ext_management_system => FactoryBot.create(:ems_vmware_with_authentication)).id},
+                                                           :miq_request => FactoryBot.create(:miq_provision_request, :with_approval).tap { |r| r.miq_approvals.update_all(:state => "approved") }))
+      runner_context = described_class.reconfigure_execute(params, secrets, floe_context)
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status(/Calling reconfigure_execute on non-reconfigure request/))
+    end
+
+    it "returns an error when the task cannot be found" do
+      runner_context = described_class.reconfigure_execute(params, secrets, create_floe_context(:execution => {"_object_type" => "ServiceReconfigureTask", "_object_id" => 0}))
+      expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status(/Unable to find MiqReqeustTask id/))
+    end
+
+    context "with a service_reconfigure_task" do
+      let(:user)    { FactoryBot.create(:user_with_group) }
+      let(:service) { FactoryBot.create(:service) }
+      let(:request) do
+        FactoryBot.create(:service_reconfigure_request, :with_approval, :requester => user)
+                  .tap { |r| r.miq_approvals.update_all(:state => "approved") }
+      end
+      let(:task) do
+        FactoryBot.create(:service_reconfigure_task,
+                          :miq_request => request,
+                          :source      => service,
+                          :options     => {:key1 => "original", :key2 => "kept"})
+      end
+
+      it "updates task options from context input" do
+        floe_context = create_floe_context(task, :input => {:key1 => "updated", :extra => "ignored"})
+        runner_context = described_class.reconfigure_execute(params, secrets, floe_context)
+        task.reload
+
+        expect(runner_context["miq_request_task_id"]).to eq(task.id)
+        expect(task.options).to include(:key1 => "updated", :key2 => "kept")
+        expect(task.options.keys).not_to include(:extra)
+      end
+
+      it "returns the miq_request_task_id and api url" do
+        floe_context   = create_floe_context(task)
+        runner_context = described_class.reconfigure_execute(params, secrets, floe_context)
+
+        expect(runner_context).to include(
+          "miq_request_task_id" => task.id,
+          "_manageiq_api_url"   => "http://localhost:3000"
+        )
+      end
+
+      it "queues task execution" do
+        floe_context = create_floe_context(task)
+        expect { described_class.reconfigure_execute(params, secrets, floe_context) }.to change(MiqQueue, :count).by(1)
+        expect(MiqQueue.last).to have_attributes(:class_name => "ServiceReconfigureTask", :method_name => "execute")
+      end
+
+      context "passing options with Parameters" do
+        let(:task) do
+          FactoryBot.create(:service_reconfigure_task,
+                            :miq_request => request,
+                            :source      => service,
+                            :options     => {:dialog_number_of_cpus => "2", :dialog_vm_memory => "4096"})
+        end
+
+        it "updates task options from input parameters" do
+          floe_context = create_floe_context(task, :input => {:dialog_number_of_cpus => "4", :dialog_vm_memory => "8192"})
+          runner_context = described_class.reconfigure_execute(params, secrets, floe_context)
+          task.reload
+
+          expect(runner_context["miq_request_task_id"]).to eq(task.id)
+          expect(task.options).to include(:dialog_number_of_cpus => "4", :dialog_vm_memory => "8192")
+        end
       end
     end
   end
