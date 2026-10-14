@@ -239,8 +239,16 @@ module ManageIQ
           end
 
           if miq_request_task.destination
-            result["destination"]         = {"id" => miq_request_task.destination_id}
-            result["destination"]["href"] = ::File.join(api_base_url, miq_request_task.destination.href_slug) if api_base_url
+            destination = miq_request_task.destination
+            result["destination"]         = {"id" => destination.id, "name" => destination.name, "description" => destination.description, "ems_ref" => destination.ems_ref}
+            result["destination"]["href"] = ::File.join(api_base_url, destination.href_slug) if api_base_url
+
+            case destination
+            when ::VmOrTemplate
+              result["destination"]["uid_ems"] = destination.uid_ems
+            when ::OrchestrationStack
+              result["destination"]["outputs"] = destination.outputs.to_h { |output| [output.key, output.parsed_value] }
+            end
           end
 
           result
