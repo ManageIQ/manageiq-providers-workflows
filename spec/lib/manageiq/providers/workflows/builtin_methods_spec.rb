@@ -434,7 +434,14 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
           "state"       => "provisioned",
           "status"      => "Ok",
           "source"      => {"id" => source.id, "href" => "http://localhost:3000/api/templates/#{source.id}"},
-          "destination" => {"id" => dest.id,   "href" => "http://localhost:3000/api/vms/#{dest.id}"}
+          "destination" => {
+            "id"          => dest.id,
+            "href"        => "http://localhost:3000/api/vms/#{dest.id}",
+            "name"        => dest.name,
+            "description" => dest.description,
+            "ems_ref"     => dest.ems_ref,
+            "uid_ems"     => dest.uid_ems
+          }
         )
       end
     end
@@ -561,6 +568,92 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
 
         expect(runner_context["miq_request_task_id"]).to eq(retire_task.id)
         expect(retire_task.options).to include(:removal_type => "remove_from_disk", :delete_from_vmdb => true)
+      end
+    end
+  end
+
+  describe ".miq_request_task_result" do
+    let(:runner_context) { {"_manageiq_api_url" => "http://localhost:3000"} }
+    let(:task)           { FactoryBot.create(:miq_request_task, :state => "finished", :status => "Ok") }
+
+    context "with no destination" do
+      it "does not include destination" do
+        result = described_class.send(:miq_request_task_result, runner_context, task)
+
+        expect(result).to eq(
+          "id"     => task.id,
+          "href"   => "http://localhost:3000/api/request_tasks/#{task.id}",
+          "state"  => "finished",
+          "status" => "Ok"
+        )
+      end
+    end
+
+    context "with a Vm destination" do
+      let(:destination) { FactoryBot.create(:vm_vmware, :name => "My VM", :description => "VM Description", :ems_ref => "vm-123", :uid_ems => "abcd-efgh") }
+
+      it "includes destination properties including uid_ems" do
+        task.update!(:destination => destination)
+        result = described_class.send(:miq_request_task_result, runner_context, task)
+
+        expect(result["destination"]).to eq(
+          "id"          => destination.id,
+          "href"        => "http://localhost:3000/api/vms/#{destination.id}",
+          "name"        => "My VM",
+          "description" => "VM Description",
+          "ems_ref"     => "vm-123",
+          "uid_ems"     => "abcd-efgh"
+        )
+      end
+    end
+
+    context "with an OrchestrationStack destination" do
+      let(:destination) { FactoryBot.create(:orchestration_stack, :name => "My Stack", :description => "Stack Description", :ems_ref => "stack-123") }
+
+      it "includes destination properties including parsed outputs" do
+        destination.outputs << FactoryBot.create(:orchestration_stack_output, :key => "string_key", :value => "string_value")
+        destination.outputs << FactoryBot.create(:orchestration_stack_output, :key => "int_key",    :value => "42", :value_type => "integer")
+        destination.outputs << FactoryBot.create(:orchestration_stack_output, :key => "float_key",  :value => "42.0", :value_type => "float")
+        destination.outputs << FactoryBot.create(:orchestration_stack_output, :key => "object_key", :value => "{\"ip\":\"10.0.0.1\",\"port\":80}", :value_type => "object")
+        destination.outputs << FactoryBot.create(:orchestration_stack_output, :key => "array_key",  :value => "[1, 2, \"3\"]", :value_type => "array")
+
+        task.update!(:destination => destination)
+
+        result = described_class.send(:miq_request_task_result, runner_context, task)
+
+        expect(result["destination"]).to eq(
+          "id"          => destination.id,
+          "href"        => "http://localhost:3000/api/orchestration_stacks/#{destination.id}",
+          "name"        => "My Stack",
+          "description" => "Stack Description",
+          "ems_ref"     => "stack-123",
+          "outputs"     => {
+            "string_key" => "string_value",
+            "int_key"    => 42,
+            "float_key"  => 42.0,
+            "object_key" => {"ip" => "10.0.0.1", "port" => 80},
+            "array_key"  => [1, 2, "3"]
+          }
+        )
+      end
+    end
+
+    context "without _manageiq_api_url in runner_context" do
+      let(:runner_context) { {} }
+      let(:destination)    { FactoryBot.create(:vm_vmware, :name => "My VM", :description => "VM Description", :ems_ref => "vm-123", :uid_ems => "abcd-efgh") }
+
+      it "omits href from destination and task result" do
+        task.update!(:destination => destination)
+        result = described_class.send(:miq_request_task_result, runner_context, task)
+
+        expect(result).not_to have_key("href")
+        expect(result["destination"]).to eq(
+          "id"          => destination.id,
+          "name"        => "My VM",
+          "description" => "VM Description",
+          "ems_ref"     => "vm-123",
+          "uid_ems"     => "abcd-efgh"
+        )
       end
     end
   end
