@@ -87,11 +87,19 @@ module ManageIQ
 
           params["options"]&.deep_symbolize_keys!
 
-          create_options = {
+          protected_options = {
             :miq_request_id      => service_task.miq_request_id,
             :miq_request_task_id => service_task.id,
             :userid              => service_task.userid,
-          }.merge(params)
+            :tenant_id           => service_task.tenant_id
+          }
+
+          # Do not allow the user to override the protected options
+          invalid_overrides = params.with_indifferent_access.slice(*protected_options.keys)
+          $workflows_log.warn("provision_task: ignoring attempt to override protected options: #{invalid_overrides.keys.join(", ")}") if invalid_overrides.any?
+
+          user_options   = params.with_indifferent_access.except(*protected_options.keys)
+          create_options = user_options.merge(protected_options)
 
           begin
             request_klass = ::MiqRequest.class_from_request_data(:request_type => params["request_type"])

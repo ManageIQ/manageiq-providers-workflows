@@ -335,6 +335,22 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
         expect(miq_provision).to have_attributes(:description => "my provision task")
       end
 
+      it "does not allow protected params to be overridden" do
+        other_tenant   = FactoryBot.create(:tenant)
+        floe_context   = create_floe_context(task)
+        override       = {"userid" => "other_user", "tenant_id" => other_tenant.id, "miq_request_id" => 0, "miq_request_task_id" => 0}
+
+        runner_context = described_class.provision_task(params.merge(override), secrets, floe_context)
+
+        miq_provision = MiqProvision.find(runner_context["miq_request_task_id"])
+        expect(miq_provision).to have_attributes(
+          :userid           => task.userid,
+          :tenant_id        => task.tenant_id,
+          :miq_request      => request,
+          :miq_request_task => task
+        )
+      end
+
       context "with an invalid request_type" do
         let(:params) { {"request_type" => "typo", "options" => {"src_vm_id" => [source.id, source.name]}} }
 
