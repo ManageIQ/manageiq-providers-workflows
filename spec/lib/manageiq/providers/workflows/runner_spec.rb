@@ -82,5 +82,48 @@ RSpec.describe ManageIQ::Providers::Workflows::Runner do
         end
       end
     end
+
+    context "when docker_runner.wait raises an exception" do
+      before do
+        allow(docker_runner).to receive(:wait).and_raise(StandardError, "docker is down")
+        allow(subject).to receive(:sleep)
+      end
+
+      it "logs the error and sleeps instead of raising" do
+        expect { subject.send(:docker_wait) }.not_to raise_error
+
+        expect(subject).to have_received(:sleep).once
+      end
+
+      it "exponentially increases the sleep on consecutive failures" do
+        5.times { subject.send(:docker_wait) }
+
+        expect(subject).to have_received(:sleep).with(2).ordered
+        expect(subject).to have_received(:sleep).with(4).ordered
+        expect(subject).to have_received(:sleep).with(8).ordered
+        expect(subject).to have_received(:sleep).with(16).ordered
+        expect(subject).to have_received(:sleep).with(32).ordered
+      end
+
+      it "caps the sleep at 60 seconds" do
+        8.times { subject.send(:docker_wait) }
+
+        expect(subject).to have_received(:sleep).with(60).exactly(3).times
+        expect(subject).not_to have_received(:sleep).with(satisfy { |s| s > 60 })
+      end
+
+      it "resets the backoff after a successful call" do
+        2.times { subject.send(:docker_wait) }
+
+        allow(docker_runner).to receive(:wait) # returns normally
+        subject.send(:docker_wait)
+
+        allow(docker_runner).to receive(:wait).and_raise(StandardError, "docker is down")
+        subject.send(:docker_wait)
+
+        expect(subject).to have_received(:sleep).with(2).twice
+        expect(subject).to have_received(:sleep).with(4).once
+      end
+    end
   end
 end
