@@ -59,9 +59,16 @@ module ManageIQ
 
             workflow_instance.run_queue(**queue_args)
           end
+
+          @docker_wait_backoff = nil
         rescue => err
           $workflows_log.warn("Error: [#{err}]")
           $workflows_log.log_backtrace(err)
+
+          # Back off exponentially so a method that fails immediately doesn't spin and spam the log
+          @docker_wait_backoff = [(@docker_wait_backoff || 1.second) * 2, 60.seconds].min
+          $workflows_log.warn("Runner: Retrying docker wait in [#{@docker_wait_backoff}] seconds")
+          sleep(@docker_wait_backoff)
         end
 
         def stop_thread(thread)
