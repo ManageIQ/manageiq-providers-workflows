@@ -108,6 +108,7 @@ module ManageIQ
           end
 
           request_task_klass = request_klass.request_task_class_from(create_options)
+          return BuiltinRunner.error!({}, :cause => "Unable to determine request task class from request_type: [#{params["request_type"]}]") if request_task_klass.nil?
 
           miq_request_task = request_task_klass.create!(create_options)
           miq_request_task.execute_queue
