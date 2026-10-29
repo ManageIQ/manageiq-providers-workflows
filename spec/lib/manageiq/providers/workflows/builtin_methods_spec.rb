@@ -359,6 +359,18 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
           expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status("Unable to find MiqReqeust class from request_type: [typo]"))
         end
       end
+
+      context "with a request type that is mapped to a more friendly name" do
+        let(:params)  { {"request_type" => "vm_provision", "options" => {"src_vm_id" => [source.id, source.name]}} }
+
+        it "creates a template type provision" do
+          floe_context   = create_floe_context(task)
+          runner_context = described_class.provision_task(params, secrets, floe_context)
+
+          miq_provision = MiqProvision.find(runner_context["miq_request_task_id"])
+          expect(miq_provision.request_type).to eq("template")
+        end
+      end
     end
 
     context "ConfigurationScript Provisioning" do
