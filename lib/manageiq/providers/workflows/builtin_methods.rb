@@ -98,6 +98,8 @@ module ManageIQ
           invalid_overrides = params.with_indifferent_access.slice(*protected_options.keys)
           $workflows_log.warn("provision_task: ignoring attempt to override protected options: #{invalid_overrides.keys.join(", ")}") if invalid_overrides.any?
 
+          params["request_type"] = MIQ_REQUEST_REQUEST_TYPE_MAPPING[params["request_type"].to_s] || params["request_type"]
+
           user_options   = params.with_indifferent_access.except(*protected_options.keys)
           create_options = user_options.merge(protected_options)
 
@@ -114,6 +116,15 @@ module ManageIQ
           miq_request_task.execute_queue
           {"miq_request_task_id" => miq_request_task.id, "_manageiq_api_url" => context.execution&.dig("_manageiq_api_url")}
         end
+
+        # Some of the request_types in MiqRequest are not intuitive for an end user but are needed for backwards
+        # compatibility.  This mapping translates a more human readable request_type name to the backend one.
+        MIQ_REQUEST_REQUEST_TYPE_MAPPING = {
+          "vm_provision"                   => "template",
+          "configured_system_provision"    => "provision_via_foreman",
+          "configuration_script_provision" => "provision_via_automation_manager"
+        }.freeze
+        private_constant :MIQ_REQUEST_REQUEST_TYPE_MAPPING
 
         private_class_method def self.provision_task_status!(runner_context)
           miq_request_task_status!(runner_context)
