@@ -231,25 +231,33 @@ module ManageIQ
         private_class_method def self.miq_request_task_result(runner_context, miq_request_task)
           api_base_url = ::File.join(runner_context["_manageiq_api_url"], "api") if runner_context["_manageiq_api_url"]
 
-          result         = {"id" => miq_request_task.id, "state" => miq_request_task.state, "status" => miq_request_task.status}
-          result["href"] = ::File.join(api_base_url, miq_request_task.href_slug) if api_base_url
+          result = {
+            "id"     => miq_request_task.id,
+            "state"  => miq_request_task.state,
+            "status" => miq_request_task.status
+          }
 
-          if miq_request_task.source
-            result["source"]         = {"id" => miq_request_task.source_id}
-            result["source"]["href"] = ::File.join(api_base_url, miq_request_task.source.href_slug) if api_base_url
-          end
+          result["href"]        = ::File.join(api_base_url, miq_request_task.href_slug)                         if api_base_url
+          result["source"]      = miq_request_task_resource_details(miq_request_task.source, api_base_url)      if miq_request_task.source
+          result["destination"] = miq_request_task_resource_details(miq_request_task.destination, api_base_url) if miq_request_task.destination
+          result
+        end
 
-          if miq_request_task.destination
-            destination = miq_request_task.destination
-            result["destination"]         = {"id" => destination.id, "name" => destination.name, "description" => destination.description, "ems_ref" => destination.ems_ref}
-            result["destination"]["href"] = ::File.join(api_base_url, destination.href_slug) if api_base_url
+        private_class_method def self.miq_request_task_resource_details(resource, api_base_url = nil)
+          result = {
+            "id"          => resource.id,
+            "name"        => resource.name,
+            "description" => resource.description,
+            "ems_ref"     => resource.ems_ref
+          }
 
-            case destination
-            when ::VmOrTemplate
-              result["destination"]["uid_ems"] = destination.uid_ems
-            when ::OrchestrationStack
-              result["destination"]["outputs"] = destination.outputs.to_h { |output| [output.key, output.parsed_value] }
-            end
+          result["href"] = ::File.join(api_base_url, resource.href_slug) if api_base_url
+
+          case resource
+          when ::VmOrTemplate
+            result["uid_ems"] = resource.uid_ems
+          when ::OrchestrationStack
+            result["outputs"] = resource.outputs.to_h { |output| [output.key, output.parsed_value] }
           end
 
           result

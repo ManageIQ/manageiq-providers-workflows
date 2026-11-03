@@ -433,7 +433,14 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
           "href"        => "http://localhost:3000/api/request_tasks/#{task.id}",
           "state"       => "provisioned",
           "status"      => "Ok",
-          "source"      => {"id" => source.id, "href" => "http://localhost:3000/api/templates/#{source.id}"},
+          "source"      => {
+            "id"          => source.id,
+            "href"        => "http://localhost:3000/api/templates/#{source.id}",
+            "name"        => source.name,
+            "description" => source.description,
+            "ems_ref"     => source.ems_ref,
+            "uid_ems"     => source.uid_ems
+          },
           "destination" => {
             "id"          => dest.id,
             "href"        => "http://localhost:3000/api/vms/#{dest.id}",
