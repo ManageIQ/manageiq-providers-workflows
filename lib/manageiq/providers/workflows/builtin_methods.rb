@@ -258,8 +258,7 @@ module ManageIQ
           result = {
             "id"          => resource.id,
             "name"        => resource.name,
-            "description" => resource.description,
-            "ems_ref"     => resource.ems_ref
+            "description" => resource.description
           }
 
           result["href"] = ::File.join(api_base_url, resource.href_slug) if api_base_url
@@ -267,7 +266,9 @@ module ManageIQ
           case resource
           when ::VmOrTemplate
             result["uid_ems"] = resource.uid_ems
+            result["ems_ref"] = resource.ems_ref
           when ::OrchestrationStack
+            result["ems_ref"] = resource.ems_ref
             result["outputs"] = resource.outputs.to_h { |output| [output.key, output.parsed_value] }
           end
 

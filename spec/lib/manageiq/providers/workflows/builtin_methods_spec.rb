@@ -464,6 +464,36 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
         )
       end
     end
+
+    context "with a ConfigurationScript source" do
+      let(:ems)          { FactoryBot.create(:embedded_automation_manager_terraform) }
+      let(:request)      { FactoryBot.create(:service_template_provision_request, :with_approval).tap { |r| r.miq_approvals.update_all(:state => "approved") } }
+      let(:service_task) { FactoryBot.create(:service_template_provision_task, :miq_request => request, :userid => "admin") }
+      let(:source)       { FactoryBot.create(:configuration_script_embedded_terraform, :manager => ems) }
+      let(:task_params)  { {"request_type" => "provision_via_automation_manager", "source_type" => "ConfigurationScript", "source_id" => source.id, "options" => {"src_configuration_script_id" => [source.id, source.name]}} }
+
+      it "returns the miq_request_task info without an ems_ref" do
+        prov_context   = described_class.provision_task(task_params, secrets, create_floe_context(service_task))
+        prov_task      = MiqProvisionTask.find(prov_context["miq_request_task_id"])
+        runner_context = described_class.provision_execute(params, secrets, create_floe_context(prov_task))
+
+        prov_task.update!(:state => "provisioned", :status => "Ok")
+        described_class.send(:provision_execute_status!, runner_context)
+
+        expect(runner_context).to include("success" => true)
+        expect(runner_context["output"]).to include(
+          "id"     => prov_task.id,
+          "state"  => "provisioned",
+          "status" => "Ok",
+          "source" => {
+            "id"          => source.id,
+            "href"        => "http://localhost:3000/api/configuration_scripts/#{source.id}",
+            "name"        => source.name,
+            "description" => source.description
+          }
+        )
+      end
+    end
   end
 
   describe ".reconfigure_execute" do
