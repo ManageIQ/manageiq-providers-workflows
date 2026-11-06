@@ -86,6 +86,8 @@ module ManageIQ
           return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeustTask id: [#{service_task_id}]") if service_task.nil?
 
           params["options"]&.deep_symbolize_keys!
+          # The service_guid is used by MiqProvisionTasks to connect resources to the service
+          params["options"][:service_guid] ||= service_task.destination&.guid
 
           protected_options = {
             :miq_request_id      => service_task.miq_request_id,

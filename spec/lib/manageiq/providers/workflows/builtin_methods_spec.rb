@@ -305,10 +305,11 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
     end
 
     context "VM Provision" do
+      let(:service) { FactoryBot.create(:service) }
       let(:ems)     { FactoryBot.create(:ems_vmware_with_authentication) }
       let(:source)  { FactoryBot.create(:template_vmware, :ext_management_system => ems) }
       let(:request) { FactoryBot.create(:service_template_provision_request, :with_approval).tap { |r| r.miq_approvals.update_all(:state => "approved") } }
-      let(:task)    { FactoryBot.create(:service_template_provision_task, :miq_request => request, :userid => "admin") }
+      let(:task)    { FactoryBot.create(:service_template_provision_task, :miq_request => request, :userid => "admin", :destination => service) }
       let(:params)  { {"request_type" => "template", "options" => {"src_vm_id" => [source.id, source.name]}} }
 
       it "creates an MiqProvision linked to the service task" do
@@ -349,6 +350,14 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
           :miq_request      => request,
           :miq_request_task => task
         )
+      end
+
+      it "adds the service_guid to the MiqProvisionTask create options" do
+        floe_context   = create_floe_context(task)
+        runner_context = described_class.provision_task(params, secrets, floe_context)
+
+        miq_provision = MiqProvision.find(runner_context["miq_request_task_id"])
+        expect(miq_provision.options).to include(:service_guid => service.guid)
       end
 
       context "with an invalid request_type" do
