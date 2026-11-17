@@ -109,8 +109,11 @@ module ManageIQ
             return BuiltinRunner.error!({}, :cause => "Unable to find MiqReqeust class from request_type: [#{params["request_type"]}]")
           end
 
-          request_task_klass = request_klass.request_task_class_from(create_options)
-          return BuiltinRunner.error!({}, :cause => "Unable to determine request task class from request_type: [#{params["request_type"]}]") if request_task_klass.nil?
+          begin
+            request_task_klass = request_klass.request_task_class_from(create_options)
+          rescue ::MiqException::MiqProvisionError => err
+            return BuiltinRunner.error!({}, :cause => "Unable to determine request task class for request_type [#{params["request_type"]}]: #{err}")
+          end
 
           miq_request_task = request_task_klass.create!(create_options)
           miq_request_task.execute_queue

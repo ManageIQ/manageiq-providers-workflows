@@ -360,6 +360,16 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
         end
       end
 
+      context "with an invalid source" do
+        let(:archived_source)  { FactoryBot.create(:template_vmware, :ext_management_system => nil) }
+        let(:params)           { {"request_type" => "template", "options" => {"src_vm_id" => [archived_source.id, archived_source.name]}} }
+
+        it "returns an error" do
+          runner_context = described_class.provision_task(params, secrets, create_floe_context(task))
+          expect(runner_context).to include("running" => false, "success" => false, "output" => failed_task_status(/Source Template\/Vm with id \[\d+\] has no EMS, unable to provision/))
+        end
+      end
+
       context "with a request type that is mapped to a more friendly name" do
         let(:params)  { {"request_type" => "vm_provision", "options" => {"src_vm_id" => [source.id, source.name]}} }
 
@@ -377,7 +387,8 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
       let(:ems)     { FactoryBot.create(:embedded_automation_manager_terraform) }
       let(:request) { FactoryBot.create(:service_template_provision_request, :with_approval).tap { |r| r.miq_approvals.update_all(:state => "approved") } }
       let(:task)    { FactoryBot.create(:service_template_provision_task, :miq_request => request, :userid => "admin") }
-      let(:source)  { FactoryBot.create(:configuration_script_embedded_terraform, :manager => ems) }
+      let(:payload) { FactoryBot.create(:terraform_template, :manager => ems) }
+      let(:source)  { FactoryBot.create(:configuration_script_embedded_terraform, :manager => ems, :parent => payload) }
       let(:params)  { {"request_type" => "provision_via_automation_manager", "source_type" => "ConfigurationScript", "source_id" => source.id, "options" => {"src_configuration_script_id" => [source.id, source.name]}} }
 
       it "creates a Provision task linked to the service task" do
@@ -393,6 +404,21 @@ RSpec.describe ManageIQ::Providers::Workflows::BuiltinMethods do
           :userid           => task.userid
         )
         expect(runner_context).to include("_manageiq_api_url" => "http://localhost:3000")
+      end
+
+      context "with an invalid src_configuration_script_id" do
+        let(:params) { {"request_type" => "provision_via_automation_manager", "source_type" => "ConfigurationScript", "source_id" => source.id, "options" => {"src_configuration_script_id" => [payload.id, payload.name]}} }
+
+        it "returns an error if an invalid src_configuration_script_id is passed" do
+          floe_context   = create_floe_context(task)
+          runner_context = described_class.provision_task(params, secrets, floe_context)
+
+          expect(runner_context).to include(
+            "running" => false,
+            "success" => false,
+            "output"  => failed_task_status(/Unable to find source ConfigurationScript with id \[#{payload.id}\]/)
+          )
+        end
       end
     end
   end
